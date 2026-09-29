@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserRole } from '../../types';
 import { ROLE_DEFINITIONS, decodeJWT } from '../../lib/jwtAuth';
-import { X, Check, Shield, Tractor, Truck, Warehouse, ShieldCheck, Key, Copy, CheckCircle } from 'lucide-react';
+import { X, Check, Shield, Tractor, Truck, Warehouse, ShieldCheck, Key, Copy, CheckCircle, Store } from 'lucide-react';
 
 interface RoleSwitcherModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
 
   if (!isOpen) return null;
 
-  const roles: UserRole[] = ['FARMER', 'TRANSPORTER', 'WAREHOUSE_ADMIN', 'COMPLIANCE_AUDITOR'];
+  const roles: UserRole[] = ['FARMER', 'TRANSPORTER', 'WAREHOUSE_ADMIN', 'RETAILER', 'COMPLIANCE_AUDITOR'];
   const decoded = decodeJWT(currentToken);
 
   const getRoleIcon = (role: UserRole) => {
@@ -34,6 +34,8 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
         return <Truck className="w-5 h-5 text-sky-600 dark:text-sky-400" />;
       case 'WAREHOUSE_ADMIN':
         return <Warehouse className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
+      case 'RETAILER':
+        return <Store className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
       case 'COMPLIANCE_AUDITOR':
         return <ShieldCheck className="w-5 h-5 text-violet-600 dark:text-violet-400" />;
     }

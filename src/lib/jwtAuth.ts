@@ -58,6 +58,22 @@ export const ROLE_DEFINITIONS: Record<UserRole, {
       'dispatch:authorize'
     ]
   },
+  RETAILER: {
+    title: 'Urban Retail Chain Procurement Director',
+    name: 'Zainab Malik',
+    email: 'zainab.m@metro-grocers.pk',
+    organization: 'Metro Urban Cold-Chain Supermarket Network',
+    location: 'Lahore Central Terminal, Pakistan',
+    badgeLabel: 'Retail Intake Node',
+    avatarIcon: 'Store',
+    permissions: [
+      'orders:read',
+      'quality:verify',
+      'inventory:receive',
+      'shelf:allocate',
+      'reports:export_csv'
+    ]
+  },
   COMPLIANCE_AUDITOR: {
     title: 'Lead FSMA & GlobalGAP Auditor',
     name: 'Dr. Helen Vance',

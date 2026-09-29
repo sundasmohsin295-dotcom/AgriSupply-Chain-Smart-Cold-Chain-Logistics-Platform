@@ -3,7 +3,7 @@
  * Core TypeScript Domain Types & Interfaces
  */
 
-export type UserRole = 'FARMER' | 'TRANSPORTER' | 'WAREHOUSE_ADMIN' | 'COMPLIANCE_AUDITOR';
+export type UserRole = 'FARMER' | 'TRANSPORTER' | 'WAREHOUSE_ADMIN' | 'RETAILER' | 'COMPLIANCE_AUDITOR';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -165,6 +165,8 @@ export interface TelemetryReading {
   compressorDuty: number;
   batterySoc: number;
   status: ColdChainStatus;
+  coreTemperature?: number;
+  batteryStateOfHealth?: number;
 }
 
 export interface OfflineMutation {

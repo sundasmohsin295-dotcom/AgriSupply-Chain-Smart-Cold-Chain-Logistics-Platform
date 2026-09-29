@@ -218,7 +218,7 @@ export const IoTTelemetryDeck: React.FC = () => {
 
       </div>
 
-      {/* Sensor Data Bar matching Reference Image: Humidity 85%, Door Status Closed, Power Normal, Last Updated 2 min ago */}
+      {/* Sensor Data Bar: Humidity, Battery SOH, Compressor Load, Door & Power Status */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
         
         <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
@@ -227,27 +227,35 @@ export const IoTTelemetryDeck: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-semibold block uppercase">Humidity</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">{currentHumidity.toFixed(0)}%</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">{currentHumidity.toFixed(1)}% RH</span>
           </div>
         </div>
 
         <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <DoorClosed className="w-4 h-4" />
+          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <BatteryCharging className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Door Status</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">Closed</span>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Battery SOH</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+              {(currentReading?.batterySoc || 96.0).toFixed(1)}%
+            </span>
           </div>
         </div>
 
         <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <div className={`p-2 rounded-lg ${
+            isBreached 
+              ? 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400' 
+              : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+          }`}>
             <Zap className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Power</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">Normal</span>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Compressor Duty</span>
+            <span className={`text-xs font-bold font-mono ${isBreached ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+              {isBreached ? '18% (Overheated)' : `${currentReading?.compressorDuty || 68}% Normal`}
+            </span>
           </div>
         </div>
 
@@ -256,8 +264,10 @@ export const IoTTelemetryDeck: React.FC = () => {
             <Clock className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Last Updated</span>
-            <span className="text-xs font-bold text-slate-900 dark:text-white">2 min ago</span>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Stream Tick</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">
+              {currentReading?.timestamp || 'Every 2000ms'}
+            </span>
           </div>
         </div>
 

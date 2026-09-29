@@ -11,7 +11,8 @@ import {
   Moon, 
   Globe, 
   Leaf, 
-  ChevronDown
+  ChevronDown,
+  Flame
 } from 'lucide-react';
 
 interface TopNavBarProps {
@@ -27,6 +28,8 @@ interface TopNavBarProps {
   onToggleTheme: () => void;
   language: LanguageCode;
   onSelectLanguage: (lang: LanguageCode) => void;
+  isThermalBreachActive?: boolean;
+  onToggleThermalBreach?: () => void;
 }
 
 export const TopNavBar: React.FC<TopNavBarProps> = ({
@@ -41,7 +44,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   theme,
   onToggleTheme,
   language,
-  onSelectLanguage
+  onSelectLanguage,
+  isThermalBreachActive = false,
+  onToggleThermalBreach
 }) => {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const roleInfo = ROLE_DEFINITIONS[currentRole];
@@ -156,6 +161,19 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
               </div>
             )}
           </div>
+
+          {/* Visual Thermal Breach Pill Indicator */}
+          {isThermalBreachActive && (
+            <button
+              onClick={onToggleThermalBreach}
+              title="Active Thermal Breach detected (>4.0°C). Click to resolve."
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white border border-rose-400 animate-breach-pulse shadow-sm"
+            >
+              <Flame className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">BREACH &gt;4.0°C</span>
+              <span className="sm:hidden">BREACH</span>
+            </button>
+          )}
 
           {/* Offline/Online Network Resilience Trigger */}
           <button
