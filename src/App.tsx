@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserRole, ProduceBatch, ColdChainStatus, PipelineStage, OfflineMutation } from './types';
+import { UserRole, ProduceBatch, ColdChainStatus, PipelineStage, OfflineMutation, ThemeMode, LanguageCode } from './types';
 import { INITIAL_BATCHES } from './lib/constants';
 import { getStoredSession, createSessionForRole } from './lib/jwtAuth';
 import { offlineStorage } from './lib/offlineStore';
 import { audioAlert } from './lib/audioAlert';
+import { isRTL } from './lib/translations';
 import { TopNavBar } from './components/navigation/TopNavBar';
 import { RoleSwitcherModal } from './components/auth/RoleSwitcherModal';
 import { OfflineSyncIndicator } from './components/offline/OfflineSyncIndicator';
@@ -12,9 +13,15 @@ import { FarmerModule } from './components/farmer/FarmerModule';
 import { TransporterModule } from './components/transporter/TransporterModule';
 import { WarehouseModule } from './components/warehouse/WarehouseModule';
 import { KanbanPipeline } from './components/pipeline/KanbanPipeline';
+import { ReportsModule } from './components/reports/ReportsModule';
 import { AuditorModule } from './components/auditor/AuditorModule';
+import { AIAssistantWidget } from './components/assistant/AIAssistantWidget';
 
 export default function App() {
+  // Theme & Language State
+  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [language, setLanguage] = useState<LanguageCode>('en');
+
   // Session & RBAC State
   const [session, setSession] = useState(() => getStoredSession());
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
@@ -29,6 +36,24 @@ export default function App() {
   // Central Inventory / Batches State
   const [batches, setBatches] = useState<ProduceBatch[]>(INITIAL_BATCHES);
 
+  // Synchronize HTML element class for theme and dir for RTL
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+
+    if (isRTL(language)) {
+      root.setAttribute('dir', 'rtl');
+    } else {
+      root.setAttribute('dir', 'ltr');
+    }
+  }, [theme, language]);
+
   // Subscribe to Offline Storage Engine
   useEffect(() => {
     const unsubscribe = offlineStorage.subscribe((muts, online) => {
@@ -38,6 +63,11 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Theme Toggle with smooth transition
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   // Handle Role Switching
   const handleSelectRole = (newRole: UserRole) => {
@@ -112,9 +142,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a1017] text-slate-100 flex flex-col font-sans selection:bg-amber-400/20 selection:text-amber-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a1017] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       
-      {/* Top Bar Navigation (Strict 3-zone Top Bar Contract) */}
+      {/* Top Bar Navigation (Strict 3-zone Top Bar Contract with Theme and Language) */}
       <TopNavBar
         currentTab={activeTab}
         onSelectTab={setActiveTab}
@@ -124,6 +154,10 @@ export default function App() {
         isOnline={isOnline}
         onToggleNetwork={handleToggleNetwork}
         queuedCount={queuedMutations.length}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        language={language}
+        onSelectLanguage={setLanguage}
       />
 
       {/* Offline Synchronization Banner & Resilience Controls */}
@@ -144,6 +178,7 @@ export default function App() {
             currentRole={session.role}
             isOnline={isOnline}
             onToggleNetwork={handleToggleNetwork}
+            language={language}
           />
         )}
 
@@ -174,6 +209,12 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'reports' && (
+          <ReportsModule
+            batches={batches}
+          />
+        )}
+
         {activeTab === 'auditor' && (
           <AuditorModule
             batches={batches}
@@ -181,15 +222,15 @@ export default function App() {
         )}
       </main>
 
-      {/* Bottom Footer (Quiet, clean single-line footer per frontend-design guidelines) */}
-      <footer className="border-t border-slate-800/80 bg-[#070b10] py-4 px-6 text-xs text-slate-400">
+      {/* Bottom Footer (Clean single-line footer) */}
+      <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#070b10] py-4 px-6 text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white">AgriSupply Platform</span>
+            <span className="font-bold text-slate-800 dark:text-white">AgriSupply Platform</span>
             <span>·</span>
-            <span>Autonomous Agricultural Cold-Chain Protocol</span>
+            <span>Farm to Future Cold-Chain Protocol</span>
             <span>·</span>
-            <span className="font-mono text-emerald-400">IoT v2.4</span>
+            <span className="font-mono text-emerald-600 dark:text-emerald-400">IoT Telemetry v2.4</span>
           </div>
 
           <div className="flex items-center gap-4 text-[11px] font-mono">
@@ -197,7 +238,7 @@ export default function App() {
             <span>·</span>
             <button
               onClick={() => setIsRoleModalOpen(true)}
-              className="text-amber-400 hover:underline"
+              className="text-emerald-700 dark:text-amber-400 hover:underline"
             >
               Session: {session.name} ({session.role})
             </button>
@@ -214,10 +255,18 @@ export default function App() {
         currentToken={session.token}
       />
 
+      {/* Floating Role-Aware AI Assistant Widget */}
+      <AIAssistantWidget
+        currentRole={session.role}
+        batches={batches}
+        isThermalBreachActive={false}
+        theme={theme}
+      />
+
       {/* Toast Notification Container */}
       {syncToastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0f1722] border border-amber-400/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+        <div className="fixed bottom-6 left-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span className="text-xs font-medium">{syncToastMessage}</span>
         </div>
       )}

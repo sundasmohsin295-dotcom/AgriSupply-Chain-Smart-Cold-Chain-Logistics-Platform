@@ -1,5 +1,14 @@
 import { jsPDF } from 'jspdf';
-import { ProduceBatch, ReeferVehicle, ComplianceAuditLog } from '../types';
+import { ProduceBatch, ReeferVehicle, ComplianceAuditLog, TemperatureBreachRecord } from '../types';
+
+/**
+ * Escapes CSV field properly conforming to RFC-4180
+ */
+function escapeCSV(val: unknown): string {
+  if (val === null || val === undefined) return '""';
+  const str = String(val).replace(/"/g, '""');
+  return `"${str}"`;
+}
 
 /**
  * Generates an official, beautifully formatted Cold-Chain Compliance Certificate PDF
@@ -87,16 +96,16 @@ export function generateCompliancePDF(
   doc.text(`Recorded Core Temp:`, col2, startY + 7);
   doc.text(`Relative Humidity:`, col2, startY + 14);
   doc.text(`Quality Grade:`, col2, startY + 21);
-  doc.text(`Brix Sugar Index:`, col2, startY + 28);
+  doc.text(`Freshness Index:`, col2, startY + 28);
   doc.text(`Destination Hub:`, col2, startY + 35);
 
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
   doc.text(`${batch.targetTempMin}°C - ${batch.targetTempMax}°C`, col2 + 42, startY);
-  doc.text(`${batch.currentTemp.toFixed(1)}°C (Nominal Envelope)`, col2 + 42, startY + 7);
+  doc.text(`${batch.currentTemp.toFixed(1)}°C (${batch.coldChainStatus})`, col2 + 42, startY + 7);
   doc.text(`${batch.currentHumidity.toFixed(1)}% RH`, col2 + 42, startY + 14);
   doc.text(`${batch.qualityGrade.replace(/_/g, ' ')}`, col2 + 42, startY + 21);
-  doc.text(`${batch.brixSugarScore ? batch.brixSugarScore + '° Bx' : 'N/A'}`, col2 + 42, startY + 28);
+  doc.text(`${batch.freshnessScorePercent}% Freshness Grade`, col2 + 42, startY + 28);
   doc.setFontSize(8);
   doc.text(`${batch.destinationHub}`, col2 + 42, startY + 35);
 
@@ -114,14 +123,14 @@ export function generateCompliancePDF(
   doc.text(`Assigned Transport Reefer:`, col1, reeferY + 9);
   doc.text(`Carrier / Fleet Operator:`, col1, reeferY + 16);
   doc.text(`Driver in Command:`, col1, reeferY + 23);
-  doc.text(`Reefer Compressor Health:`, col1, reeferY + 30);
+  doc.text(`Breach Incident History:`, col1, reeferY + 30);
 
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
-  doc.text(`${reefer ? reefer.id : batch.assignedReeferId || 'REEFER-TRK-804'}`, col1 + 52, reeferY + 9);
-  doc.text(`${reefer ? reefer.carrier : 'Pacific Cold-Link Logistics Inc.'}`, col1 + 52, reeferY + 16);
-  doc.text(`${reefer ? reefer.driverName : 'Carlos Mendonca (CDL #A99482)'}`, col1 + 52, reeferY + 23);
-  doc.text(`${reefer ? reefer.compressorRpm + ' RPM (100% SOH)' : '1,950 RPM (Optimal)'}`, col1 + 52, reeferY + 30);
+  doc.text(`${reefer ? reefer.id : batch.assignedReeferId || 'TRK-024'}`, col1 + 52, reeferY + 9);
+  doc.text(`${reefer ? reefer.carrier : 'AgriSupply Express Logistics Fleet'}`, col1 + 52, reeferY + 16);
+  doc.text(`${reefer ? reefer.driverName : 'Ramesh Kumar (CDL #A99482)'}`, col1 + 52, reeferY + 23);
+  doc.text(`${batch.breachRecords.length === 0 ? '0 Thermal Breaches (Nominal)' : batch.breachRecords.length + ' Incident Logged & Resolved'}`, col1 + 52, reeferY + 30);
 
   // Inspector & Oracle Attestation Box
   const signY = 175;
@@ -149,7 +158,7 @@ export function generateCompliancePDF(
     signY + 20
   );
   doc.text(
-    `Oracle Confirmation: Automated ColdGuard Oracle verified 0 thermal breach events along corridor route.`,
+    `Oracle Confirmation: Automated ColdGuard Oracle verified continuous telemetry samples along corridor route.`,
     20,
     signY + 25
   );
@@ -171,12 +180,299 @@ export function generateCompliancePDF(
   doc.setTextColor(148, 163, 184);
   doc.text('Page 1 of 1 · AgriSupply Autonomous Cold-Chain Protocol · Generated Client-Side via WebAssembly', 14, 285);
 
-  // Trigger download
-  doc.save(`ColdChain-Compliance-${batch.id}.pdf`);
+  doc.save(`ColdChain-Compliance-${batch.id.replace('#', '')}.pdf`);
 }
 
 /**
- * Generates and triggers download of CSV inventory and telemetry data
+ * MANDATORY FEATURE:
+ * Comprehensive CSV bulk export utility for the batch table that includes
+ * all historical telemetry logs, sensor metrics, and temperature breach records.
+ */
+export function exportBatchesWithTelemetryAndBreachesCSV(
+  batches: ProduceBatch[],
+  filenamePrefix: string = 'AgriSupply-Complete-Telemetry-Breach-Ledger'
+): void {
+  const headers = [
+    // --- Batch Master Identity ---
+    'Record Type',
+    'Batch ID',
+    'Produce Commodity',
+    'Produce Variety',
+    'Producer Name',
+    'Farm Origin Location',
+    'Destination Hub',
+    'Harvest Date',
+    'Net Quantity (KG)',
+    'Quality Grade',
+    'Freshness Score (%)',
+    'Current Status',
+    'Pipeline Stage',
+    'Target Temp Min (°C)',
+    'Target Temp Max (°C)',
+    'Current Temp (°C)',
+    'Current Humidity (%)',
+    'Assigned Reefer ID',
+    'Blockchain Seal Hash',
+    'Inspector Sign-Off',
+
+    // --- Telemetry & Sensor Log Fields ---
+    'Telemetry Timestamp',
+    'Core Probe Temp (°C)',
+    'Ambient Temp (°C)',
+    'Relative Humidity (%)',
+    'Compressor RPM',
+    'Battery SOC (%)',
+    'Thermal In-Envelope Flag',
+    'Telemetry Breach Severity',
+    'Excursion Duration (Min)',
+    'Corrective Action Logged',
+
+    // --- Breach Incident Record Details ---
+    'Breach Incident ID',
+    'Breach Peak Temp (°C)',
+    'Breach Threshold Limit (°C)',
+    'Excursion Delta (°C)',
+    'Location At Breach',
+    'Root Cause Analysis',
+    'Remedial Action Protocol',
+    'Quality Impact Assessment',
+    'Quarantine Triggered',
+    'Auditor Signed'
+  ];
+
+  const rows: string[][] = [];
+
+  for (const batch of batches) {
+    // 1. Add Master Batch Summary Row
+    rows.push([
+      escapeCSV('BATCH_MASTER'),
+      escapeCSV(batch.id),
+      escapeCSV(batch.commodity),
+      escapeCSV(batch.variety),
+      escapeCSV(batch.farmerName),
+      escapeCSV(batch.farmLocation),
+      escapeCSV(batch.destinationHub),
+      escapeCSV(batch.harvestDate),
+      escapeCSV(batch.quantityKg),
+      escapeCSV(batch.qualityGrade),
+      escapeCSV(batch.freshnessScorePercent),
+      escapeCSV(batch.coldChainStatus),
+      escapeCSV(batch.stage),
+      escapeCSV(batch.targetTempMin),
+      escapeCSV(batch.targetTempMax),
+      escapeCSV(batch.currentTemp),
+      escapeCSV(batch.currentHumidity),
+      escapeCSV(batch.assignedReeferId || 'UNASSIGNED'),
+      escapeCSV(batch.blockchainSealHash),
+      escapeCSV(batch.inspectedBy || 'USDA-AMS Designated Station'),
+      // Empty telemetry & breach columns for master row
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV(''),
+      escapeCSV('')
+    ]);
+
+    // 2. Add All Historical Telemetry Cycles
+    if (batch.telemetryHistory && batch.telemetryHistory.length > 0) {
+      for (const t of batch.telemetryHistory) {
+        rows.push([
+          escapeCSV('HISTORICAL_TELEMETRY'),
+          escapeCSV(batch.id),
+          escapeCSV(batch.commodity),
+          escapeCSV(batch.variety),
+          escapeCSV(batch.farmerName),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(batch.coldChainStatus),
+          escapeCSV(batch.stage),
+          escapeCSV(batch.targetTempMin),
+          escapeCSV(batch.targetTempMax),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(batch.assignedReeferId || ''),
+          escapeCSV(''),
+          escapeCSV(''),
+
+          // Telemetry fields
+          escapeCSV(t.timestamp),
+          escapeCSV(t.temperatureC),
+          escapeCSV(t.ambientTempC),
+          escapeCSV(t.humidityPercent),
+          escapeCSV(t.compressorRpm),
+          escapeCSV(t.batterySocPercent),
+          escapeCSV(!t.isBreach ? 'TRUE_OPTIMAL' : 'FALSE_VIOLATION'),
+          escapeCSV(t.breachSeverity),
+          escapeCSV(t.durationMinutesExceeded || 0),
+          escapeCSV(t.correctiveActionTaken || 'None required - within envelope'),
+
+          // Empty breach incident fields
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV('')
+        ]);
+      }
+    }
+
+    // 3. Add Explicit Temperature Breach Incident Records
+    if (batch.breachRecords && batch.breachRecords.length > 0) {
+      for (const b of batch.breachRecords) {
+        rows.push([
+          escapeCSV('TEMPERATURE_BREACH_INCIDENT'),
+          escapeCSV(batch.id),
+          escapeCSV(batch.commodity),
+          escapeCSV(batch.variety),
+          escapeCSV(batch.farmerName),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV('CRITICAL_BREACH'),
+          escapeCSV(batch.stage),
+          escapeCSV(batch.targetTempMin),
+          escapeCSV(batch.targetTempMax),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(batch.assignedReeferId || ''),
+          escapeCSV(b.blockchainHash),
+          escapeCSV(''),
+
+          // Telemetry timestamp
+          escapeCSV(b.timestamp),
+          escapeCSV(b.peakTemperatureC),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV(''),
+          escapeCSV('FALSE_VIOLATION'),
+          escapeCSV('CRITICAL_EXCURSION'),
+          escapeCSV(b.durationMinutes),
+          escapeCSV(b.remedialAction),
+
+          // Breach details
+          escapeCSV(b.id),
+          escapeCSV(b.peakTemperatureC),
+          escapeCSV(b.thresholdLimitC),
+          escapeCSV(b.excursionDeltaC),
+          escapeCSV(b.locationAtBreach),
+          escapeCSV(b.rootCause),
+          escapeCSV(b.remedialAction),
+          escapeCSV(b.qualityImpactAssessment),
+          escapeCSV(b.quarantineTriggered ? 'QUARANTINE_ACTIVE' : 'RELEASED_NOMINAL'),
+          escapeCSV(b.auditorAck ? 'VERIFIED_AUDITOR_ACK' : 'PENDING_AUDITOR_REVIEW')
+        ]);
+      }
+    }
+  }
+
+  // Prepend UTF-8 BOM so Excel opens multi-lingual text cleanly
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Dedicated CSV export for Temperature Breach Audit Incidents
+ */
+export function exportTemperatureBreachAuditCSV(batches: ProduceBatch[]): void {
+  const headers = [
+    'Breach Incident ID',
+    'Batch ID',
+    'Commodity',
+    'Variety',
+    'Farmer Name',
+    'Timestamp of Excursion',
+    'Duration (Minutes)',
+    'Peak Temp (°C)',
+    'Safe Limit (°C)',
+    'Excursion Delta (°C)',
+    'GPS Location At Breach',
+    'Root Cause Analysis',
+    'Remedial Action Taken',
+    'Quality Impact Assessment',
+    'Quarantine Enforced',
+    'Auditor Acknowledged',
+    'Blockchain Attestation Hash'
+  ];
+
+  const allBreaches: { breach: TemperatureBreachRecord; batch: ProduceBatch }[] = [];
+  for (const b of batches) {
+    if (b.breachRecords) {
+      for (const br of b.breachRecords) {
+        allBreaches.push({ breach: br, batch: b });
+      }
+    }
+  }
+
+  const rows = allBreaches.map(({ breach, batch }) => [
+    escapeCSV(breach.id),
+    escapeCSV(batch.id),
+    escapeCSV(batch.commodity),
+    escapeCSV(batch.variety),
+    escapeCSV(batch.farmerName),
+    escapeCSV(breach.timestamp),
+    escapeCSV(breach.durationMinutes),
+    escapeCSV(breach.peakTemperatureC),
+    escapeCSV(breach.thresholdLimitC),
+    escapeCSV(breach.excursionDeltaC),
+    escapeCSV(breach.locationAtBreach),
+    escapeCSV(breach.rootCause),
+    escapeCSV(breach.remedialAction),
+    escapeCSV(breach.qualityImpactAssessment),
+    escapeCSV(breach.quarantineTriggered ? 'YES_QUARANTINED' : 'NO_OVERRIDE'),
+    escapeCSV(breach.auditorAck ? 'YES_AUDITED' : 'NO_PENDING'),
+    escapeCSV(breach.blockchainHash)
+  ]);
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `AgriSupply-Temperature-Breach-Audit-${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Standard table CSV export for quick grid data download
  */
 export function exportInventoryToCSV(batches: ProduceBatch[]): void {
   const headers = [
@@ -193,37 +489,41 @@ export function exportInventoryToCSV(batches: ProduceBatch[]): void {
     'Current Humidity (%)',
     'Cold Chain Status',
     'Quality Grade',
-    'Brix Sugar Score',
+    'Freshness Score (%)',
     'Pipeline Stage',
     'Assigned Reefer',
     'Destination Hub',
+    'Estimated Transit Time',
     'Blockchain Seal Hash',
-    'Stage Timestamp'
+    'Total Telemetry Samples',
+    'Breach Incident Count'
   ];
 
   const rows = batches.map((b) => [
-    `"${b.id}"`,
-    `"${b.commodity}"`,
-    `"${b.variety}"`,
-    `"${b.farmerName}"`,
-    `"${b.farmLocation}"`,
-    `"${b.harvestDate}"`,
-    b.quantityKg,
-    b.targetTempMin,
-    b.targetTempMax,
-    b.currentTemp,
-    b.currentHumidity,
-    `"${b.coldChainStatus}"`,
-    `"${b.qualityGrade}"`,
-    b.brixSugarScore ?? '',
-    `"${b.stage}"`,
-    `"${b.assignedReeferId || 'N/A'}"`,
-    `"${b.destinationHub}"`,
-    `"${b.blockchainSealHash}"`,
-    `"${b.stageEnteredAt}"`
+    escapeCSV(b.id),
+    escapeCSV(b.commodity),
+    escapeCSV(b.variety),
+    escapeCSV(b.farmerName),
+    escapeCSV(b.farmLocation),
+    escapeCSV(b.harvestDate),
+    escapeCSV(b.quantityKg),
+    escapeCSV(b.targetTempMin),
+    escapeCSV(b.targetTempMax),
+    escapeCSV(b.currentTemp),
+    escapeCSV(b.currentHumidity),
+    escapeCSV(b.coldChainStatus),
+    escapeCSV(b.qualityGrade),
+    escapeCSV(b.freshnessScorePercent),
+    escapeCSV(b.stage),
+    escapeCSV(b.assignedReeferId || 'N/A'),
+    escapeCSV(b.destinationHub),
+    escapeCSV(b.estimatedTransitTime),
+    escapeCSV(b.blockchainSealHash),
+    escapeCSV(b.telemetryHistory ? b.telemetryHistory.length : 0),
+    escapeCSV(b.breachRecords ? b.breachRecords.length : 0)
   ]);
 
-  const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

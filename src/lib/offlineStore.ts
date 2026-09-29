@@ -89,10 +89,12 @@ class OfflineStorageEngine {
   public async queueMutation(
     type: OfflineMutation['type'],
     payload: Record<string, unknown>,
-    description: string
+    description: string,
+    category: OfflineMutation['category'] = 'FORM_SUBMISSION'
   ): Promise<OfflineMutation> {
     const mutation: OfflineMutation = {
       id: `MUT-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      category,
       type,
       payload,
       queuedAt: new Date().toISOString(),

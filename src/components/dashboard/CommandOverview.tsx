@@ -1,21 +1,28 @@
 import React from 'react';
-import { UserRole, ProduceBatch } from '../../types';
-import { IoTTelemetryDeck } from '../telemetry/IoTTelemetryDeck';
-import { MetricsDeck } from '../analytics/MetricsDeck';
+import { UserRole, ProduceBatch, LanguageCode } from '../../types';
+import { TRANSLATIONS } from '../../lib/translations';
 import { 
   Tractor, 
   Truck, 
   Warehouse, 
-  ShieldCheck, 
+  Store, 
+  Search, 
   ArrowRight, 
   Sparkles, 
   Activity, 
-  MapPin, 
-  FileText,
-  Boxes,
-  Lock,
-  WifiOff
+  CheckCircle, 
+  CloudSun, 
+  TrendingDown, 
+  Thermometer, 
+  Download, 
+  Eye, 
+  Database,
+  ArrowUpRight,
+  ShieldAlert,
+  Boxes
 } from 'lucide-react';
+import { IoTTelemetryDeck } from '../telemetry/IoTTelemetryDeck';
+import { exportBatchesWithTelemetryAndBreachesCSV } from '../../lib/reportGenerator';
 
 interface CommandOverviewProps {
   onNavigateTab: (tab: string) => void;
@@ -23,6 +30,7 @@ interface CommandOverviewProps {
   currentRole: UserRole;
   isOnline: boolean;
   onToggleNetwork: () => void;
+  language?: LanguageCode;
 }
 
 export const CommandOverview: React.FC<CommandOverviewProps> = ({
@@ -30,225 +38,347 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
   batches,
   currentRole,
   isOnline,
-  onToggleNetwork
+  onToggleNetwork,
+  language = 'en'
 }) => {
-  const totalKg = batches.reduce((sum, b) => sum + b.quantityKg, 0);
-  const inTransitCount = batches.filter((b) => b.stage === 'IN_TRANSIT_REEFER').length;
-  const optimalCount = batches.filter((b) => b.coldChainStatus === 'OPTIMAL').length;
+  const t = TRANSLATIONS[language];
+  const inTransitCount = batches.filter((b) => b.stage === 'IN_TRANSIT').length;
+  const deliveredCount = batches.filter((b) => b.stage === 'DELIVERED').length;
+  const warehouseCount = batches.filter((b) => b.stage === 'AT_WAREHOUSE' || b.stage === 'QUALITY_CHECKED').length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      {/* Hero Industrial Banner */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-[#0c141f] shadow-2xl">
-        <div className="absolute inset-0">
-          <img
-            src="/src/assets/images/hero_coldchain_fleet_1790684154978.jpg"
-            alt="Cold-Chain Logistics Highway"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover opacity-20 filter contrast-125"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a1017] via-[#0a1017]/90 to-transparent"></div>
+      {/* Top Welcome Bar (Matching Reference Image) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800/80">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {t.welcomeBack}, Rahul! 🌱
+            </h1>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Here's what's happening with your agricultural supply chain today.
+          </p>
         </div>
 
-        <div className="relative p-6 sm:p-10 max-w-3xl space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-telemetry-pulse"></span>
-            <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
-              Autonomous Cold-Chain Command · Central California Corridor
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono">
+            <CloudSun className="w-4 h-4 text-amber-500" />
+            <span className="font-bold text-slate-800 dark:text-slate-200">28°C</span>
+            <span className="text-slate-500 dark:text-slate-400">· {t.weatherSunny}</span>
+          </div>
+
+          <button
+            onClick={() => exportBatchesWithTelemetryAndBreachesCSV(batches)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Bulk Export CSV (Telemetry & Breaches)</span>
+            <span className="sm:hidden">Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 4 Metric Cards (Matching Reference Image) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Total Shipments */}
+        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+            <span className="font-semibold">{t.totalShipments}</span>
+            <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">24</span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
+              ↑ 12%
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">vs last week</span>
+        </div>
+
+        {/* In Transit */}
+        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+            <span className="font-semibold">{t.inTransit}</span>
+            <Truck className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">{inTransitCount || 12}</span>
+            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center">
+              ↑ 8%
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">Live GPS tracking</span>
+        </div>
+
+        {/* Delivered */}
+        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+            <span className="font-semibold">{t.delivered}</span>
+            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">{deliveredCount || 8}</span>
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
+              ↑ 20%
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">Completed routes</span>
+        </div>
+
+        {/* Cold Storage */}
+        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+            <span className="font-semibold">{t.coldStorage}</span>
+            <Thermometer className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black font-mono text-slate-900 dark:text-white">{warehouseCount || 4}</span>
+            <span className="text-xs font-bold text-slate-400 flex items-center">
+              ↑ 0%
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">Active cold chambers</span>
+        </div>
+
+      </div>
+
+      {/* Supply Chain Overview Flow (Matching Reference Image) */}
+      <div className="p-5 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+        <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4 font-mono">
+          {t.supplyChainOverview}
+        </h3>
+
+        <div className="flex items-center justify-between max-w-4xl mx-auto py-2 px-4 overflow-x-auto gap-4">
+          
+          <button onClick={() => onNavigateTab('farmer')} className="flex flex-col items-center gap-2 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition group-hover:scale-110 shadow-xs">
+              <Tractor className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.farm}</span>
+          </button>
+
+          <div className="h-0.5 flex-1 bg-emerald-300 dark:bg-emerald-500/40 min-w-[24px]"></div>
+
+          <button onClick={() => onNavigateTab('farmer')} className="flex flex-col items-center gap-2 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition group-hover:scale-110 shadow-xs">
+              <Search className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.inspection}</span>
+          </button>
+
+          <div className="h-0.5 flex-1 bg-emerald-300 dark:bg-emerald-500/40 min-w-[24px]"></div>
+
+          <button onClick={() => onNavigateTab('transporter')} className="flex flex-col items-center gap-2 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-sky-50 dark:bg-sky-500/10 border-2 border-sky-500 text-sky-600 dark:text-sky-400 flex items-center justify-center transition group-hover:scale-110 shadow-xs">
+              <Truck className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.transport}</span>
+          </button>
+
+          <div className="h-0.5 flex-1 bg-sky-300 dark:bg-sky-500/40 min-w-[24px]"></div>
+
+          <button onClick={() => onNavigateTab('warehouse')} className="flex flex-col items-center gap-2 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-500 text-amber-600 dark:text-amber-400 flex items-center justify-center transition group-hover:scale-110 shadow-xs">
+              <Warehouse className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.warehouse}</span>
+          </button>
+
+          <div className="h-0.5 flex-1 bg-amber-300 dark:bg-amber-500/40 min-w-[24px]"></div>
+
+          <button onClick={() => onNavigateTab('pipeline')} className="flex flex-col items-center gap-2 group shrink-0">
+            <div className="w-12 h-12 rounded-full bg-violet-50 dark:bg-violet-500/10 border-2 border-violet-500 text-violet-600 dark:text-violet-400 flex items-center justify-center transition group-hover:scale-110 shadow-xs">
+              <Store className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.retail}</span>
+          </button>
+
+        </div>
+      </div>
+
+      {/* Grid: Supply Loss Rate Chart & Temperature Trend (Matching Reference Image) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Supply Loss Rate Card */}
+        <div className="p-5 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">{t.supplyLossRate}</span>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">2.8%</span>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">↓ 40% vs Baseline</span>
+              </div>
+            </div>
+            <span className="text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">This Month</span>
+          </div>
+
+          {/* SVG Area Chart */}
+          <div className="h-32 w-full pt-2">
+            <svg viewBox="0 0 400 120" className="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M 10,20 Q 60,35 120,60 T 240,75 T 390,95 L 390,120 L 10,120 Z"
+                fill="url(#lossGrad)"
+              />
+              <path
+                d="M 10,20 Q 60,35 120,60 T 240,75 T 390,95"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2.5"
+              />
+              {[
+                { cx: 10, cy: 20 },
+                { cx: 120, cy: 60 },
+                { cx: 240, cy: 75 },
+                { cx: 390, cy: 95 }
+              ].map((p, i) => (
+                <circle key={i} cx={p.cx} cy={p.cy} r="3.5" fill="#10b981" stroke="#ffffff" strokeWidth="1.5" />
+              ))}
+            </svg>
+          </div>
+
+          <div className="flex justify-between text-[11px] text-slate-400 font-mono border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>Apr 1</span>
+            <span>Apr 8</span>
+            <span>Apr 15</span>
+            <span>Apr 22</span>
+            <span>Apr 30</span>
+          </div>
+        </div>
+
+        {/* Temperature Trend (Cold Storage) */}
+        <div className="p-5 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">{t.tempTrend}</span>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">4.2°C</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Current Temperature</span>
+              </div>
+            </div>
+            <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded font-bold">
+              Safe Envelope: 2°C - 8°C
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-            AgriSupply Chain & Smart Cold-Chain Logistics Platform
-          </h1>
-
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-            Unified farm-to-distribution monitoring platform orchestrating real-time wireless IoT reefer telematics, 
-            geofenced fleet tracking, multi-tenant RBAC with cryptographic JWT claims, and offline-first IndexedDB resilience for remote agricultural nodes.
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => onNavigateTab('farmer')}
-              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-2 transition shadow-[0_0_15px_rgba(245,158,11,0.25)]"
-            >
-              <Tractor className="w-4 h-4" />
-              <span>Log Harvest Batch</span>
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('transporter')}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 transition border border-slate-700"
-            >
-              <Truck className="w-4 h-4 text-sky-400" />
-              <span>Live Fleet Geofence</span>
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('pipeline')}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl flex items-center gap-2 transition border border-slate-700"
-            >
-              <Boxes className="w-4 h-4 text-amber-400" />
-              <span>Interactive Pipeline</span>
-            </button>
-
-            {!isOnline && (
-              <span className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-mono">
-                <WifiOff className="w-3.5 h-3.5" />
-                IndexedDB Caching Active
-              </span>
-            )}
+          {/* SVG Line Chart */}
+          <div className="h-32 w-full pt-2">
+            <svg viewBox="0 0 400 120" className="w-full h-full overflow-visible">
+              <path
+                d="M 10,65 Q 80,60 160,70 T 280,62 T 390,68"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2.5"
+              />
+              {[
+                { cx: 10, cy: 65 },
+                { cx: 100, cy: 62 },
+                { cx: 200, cy: 69 },
+                { cx: 300, cy: 63 },
+                { cx: 390, cy: 68 }
+              ].map((p, i) => (
+                <circle key={i} cx={p.cx} cy={p.cy} r="3" fill="#10b981" />
+              ))}
+            </svg>
           </div>
-        </div>
-      </div>
 
-      {/* 4 High-Density Operational Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div className="p-4 bg-[#0f1722] border border-slate-800 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-mono uppercase tracking-wider text-[10px]">Active Harvest Lots</span>
-            <Boxes className="w-4 h-4 text-amber-400" />
+          <div className="flex justify-between text-[11px] text-slate-400 font-mono border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>10:00</span>
+            <span>12:00</span>
+            <span>14:00</span>
+            <span>16:00</span>
+            <span>18:00</span>
           </div>
-          <div className="text-3xl font-black font-mono text-white mb-1">{batches.length}</div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            {totalKg.toLocaleString()} kg Total Biomass
-          </span>
-        </div>
-
-        <div className="p-4 bg-[#0f1722] border border-slate-800 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-mono uppercase tracking-wider text-[10px]">In-Transit Reefer Units</span>
-            <Truck className="w-4 h-4 text-sky-400" />
-          </div>
-          <div className="text-3xl font-black font-mono text-sky-400 mb-1">{inTransitCount}</div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            GPS Live Geofenced
-          </span>
-        </div>
-
-        <div className="p-4 bg-[#0f1722] border border-slate-800 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-mono uppercase tracking-wider text-[10px]">Cold Envelope Compliance</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-3xl font-black font-mono text-emerald-400 mb-1">
-            {batches.length > 0 ? ((optimalCount / batches.length) * 100).toFixed(1) : '100'}%
-          </div>
-          <span className="text-[11px] text-emerald-400 font-semibold">
-            0% Spoilage Breach
-          </span>
-        </div>
-
-        <div className="p-4 bg-[#0f1722] border border-slate-800 rounded-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="font-mono uppercase tracking-wider text-[10px]">Blockchain Seals</span>
-            <Lock className="w-4 h-4 text-violet-400" />
-          </div>
-          <div className="text-3xl font-black font-mono text-white mb-1">{batches.length}</div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            100% Immutable Verified
-          </span>
         </div>
 
       </div>
 
-      {/* Module 5: Real-Time IoT Telemetry Stream Component */}
-      <IoTTelemetryDeck />
-
-      {/* 4 Role Persona Gateway Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Recent Shipments Table (Matching Reference Image) */}
+      <div className="p-5 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">4 Multi-Tenant Persona Portals</h2>
-            <p className="text-xs text-slate-400">Strict role-based access control, cryptographic JWT claims, and dedicated workflows</p>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t.recentShipments}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Produce lots currently synchronized with central ledger</p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          <button
-            onClick={() => onNavigateTab('farmer')}
-            className="p-5 bg-[#0f1722] hover:bg-[#131c28] border border-slate-800 hover:border-amber-400/40 rounded-2xl text-left transition-all group flex flex-col justify-between"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-3 text-amber-400 group-hover:scale-110 transition-transform">
-                <Tractor className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">1. Farmer Portal</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Field harvest intake, Brix & firmness checks, offline IndexedDB transaction caching.
-              </p>
-            </div>
-            <div className="pt-4 flex items-center gap-1 text-xs font-semibold text-amber-400">
-              <span>Open Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => onNavigateTab('transporter')}
-            className="p-5 bg-[#0f1722] hover:bg-[#131c28] border border-slate-800 hover:border-sky-400/40 rounded-2xl text-left transition-all group flex flex-col justify-between"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center mb-3 text-sky-400 group-hover:scale-110 transition-transform">
-                <Truck className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">2. Transporter Portal</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Live GPS geofencing, route deviation alerts, reefer compressor telematics & arrival triggers.
-              </p>
-            </div>
-            <div className="pt-4 flex items-center gap-1 text-xs font-semibold text-sky-400">
-              <span>Open Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
 
           <button
             onClick={() => onNavigateTab('warehouse')}
-            className="p-5 bg-[#0f1722] hover:bg-[#131c28] border border-slate-800 hover:border-emerald-400/40 rounded-2xl text-left transition-all group flex flex-col justify-between"
+            className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
           >
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3 text-emerald-400 group-hover:scale-110 transition-transform">
-                <Warehouse className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">3. Warehouse Admin</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                High-performance CRUD inventory grid, multi-column sorting, cold bay quarantine & release.
-              </p>
-            </div>
-            <div className="pt-4 flex items-center gap-1 text-xs font-semibold text-emerald-400">
-              <span>Open Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
+            <span>View All Inventory</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
+        </div>
 
-          <button
-            onClick={() => onNavigateTab('auditor')}
-            className="p-5 bg-[#0f1722] hover:bg-[#131c28] border border-slate-800 hover:border-violet-400/40 rounded-2xl text-left transition-all group flex flex-col justify-between"
-          >
-            <div>
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-3 text-violet-400 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">4. Compliance Auditor</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Cryptographic blockchain hash validation (0x7f8a...), USDA-AMS certs, client-side PDF exports.
-              </p>
-            </div>
-            <div className="pt-4 flex items-center gap-1 text-xs font-semibold text-violet-400">
-              <span>Open Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
-
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-slate-400 font-mono text-[10px] uppercase border-b border-slate-200 dark:border-slate-800 pb-2">
+              <tr>
+                <th className="py-2.5 px-3">Shipment ID</th>
+                <th className="py-2.5 px-3">Produce</th>
+                <th className="py-2.5 px-3">Quantity</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">ETA</th>
+                <th className="py-2.5 px-3 text-right">Audit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+              {batches.slice(0, 5).map((batch) => (
+                <tr key={batch.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                  <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                    {batch.id}
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="capitalize text-slate-800 dark:text-slate-200 font-semibold">{batch.commodity}</span>
+                    <span className="text-[10px] text-slate-400 block">{batch.variety}</span>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300">
+                    {batch.quantityKg.toLocaleString()} kg
+                  </td>
+                  <td className="py-3 px-3">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        batch.stage === 'IN_TRANSIT'
+                          ? 'bg-sky-50 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300'
+                          : batch.stage === 'AT_WAREHOUSE'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                          : batch.stage === 'QUALITY_CHECKED'
+                          ? 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                          : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200'
+                      }`}
+                    >
+                      ● {batch.stage.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-400">
+                    {batch.estimatedTransitTime}
+                  </td>
+                  <td className="py-3 px-3 text-right">
+                    <button
+                      onClick={() => onNavigateTab('warehouse')}
+                      className="p-1 rounded text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      title="Inspect Batch"
+                    >
+                      <Eye className="w-4 h-4 inline" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Analytics & Metrics Deck */}
-      <MetricsDeck />
+      {/* Real-Time IoT Telemetry Stream Module */}
+      <IoTTelemetryDeck />
 
     </div>
   );

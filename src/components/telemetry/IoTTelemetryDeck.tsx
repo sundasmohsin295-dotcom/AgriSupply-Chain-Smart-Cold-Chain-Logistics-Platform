@@ -9,12 +9,12 @@ import {
   Droplets, 
   Cpu, 
   BatteryCharging, 
-  ShieldCheck, 
-  ShieldAlert, 
   Volume2, 
   VolumeX, 
-  RefreshCw,
-  Power
+  Power,
+  DoorClosed,
+  Zap,
+  Clock
 } from 'lucide-react';
 
 export const IoTTelemetryDeck: React.FC = () => {
@@ -51,9 +51,9 @@ export const IoTTelemetryDeck: React.FC = () => {
 
   // SVG Chart Dimensions & Math
   const chartWidth = 720;
-  const chartHeight = 160;
+  const chartHeight = 140;
   const minTemp = 0;
-  const maxTemp = 8; // °C scale
+  const maxTemp = 12; // °C scale
 
   const getPoints = () => {
     if (history.length === 0) return '';
@@ -67,37 +67,41 @@ export const IoTTelemetryDeck: React.FC = () => {
       .join(' ');
   };
 
-  const currentTemp = currentReading ? currentReading.coreTemp : 1.8;
-  const currentHumidity = currentReading ? currentReading.humidity : 92.4;
-  const compressorDuty = currentReading ? currentReading.compressorDuty : 65;
-  const batterySoc = currentReading ? currentReading.batterySoc : 96;
+  const currentTemp = currentReading ? currentReading.coreTemp : 4.2;
+  const currentHumidity = currentReading ? currentReading.humidity : 85;
 
   return (
     <div className={`p-6 rounded-2xl border transition-all ${
       isBreached
-        ? 'bg-[#180d12] border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.15)] animate-breach-pulse'
-        : 'bg-[#0f1722] border-slate-800 shadow-xl'
+        ? 'bg-rose-50 dark:bg-[#180d12] border-rose-400 dark:border-rose-500/60 shadow-lg animate-breach-pulse'
+        : 'bg-white dark:bg-[#0f1722] border-slate-200 dark:border-slate-800 shadow-xs'
     }`}>
       
-      {/* Header and Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+      {/* Header and Controls (Matching Reference Image) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-            isBreached ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+            isBreached 
+              ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-500/40' 
+              : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/20'
           }`}>
             <Activity className="w-5 h-5 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white tracking-tight">Real-Time IoT Cold-Chain Telemetry Stream</h2>
-              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
-                isBreached ? 'bg-rose-500 text-white' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                IoT Temperature Monitoring: Cold Storage #04
+              </h2>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
+                isBreached 
+                  ? 'bg-rose-600 text-white' 
+                  : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300'
               }`}>
-                {isBreached ? 'CRITICAL THERMAL BREACH' : 'IoT STREAM LIVE'}
+                {isBreached ? 'THERMAL BREACH' : '● Online'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
-              Sensor Node #SN-804A · 2.4GHz IEEE 802.15.4 Low-Power Mesh · Probe Sample Frequency 1.5s
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Sensor Node #SN-04 · Modulated Inverter Probe · Update Frequency 1.5s
             </p>
           </div>
         </div>
@@ -107,15 +111,15 @@ export const IoTTelemetryDeck: React.FC = () => {
           <button
             onClick={handleToggleAudio}
             title={isMuted ? 'Unmute Audio Alarm' : 'Mute Audio Alarm'}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-slate-400" /> : <Volume2 className="w-4 h-4 text-amber-500" />}
           </button>
 
           {/* Simulate Thermal Breach Toggle */}
           <button
             onClick={handleToggleBreach}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-md border ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm border ${
               isBreached
                 ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400'
                 : 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-300'
@@ -128,7 +132,7 @@ export const IoTTelemetryDeck: React.FC = () => {
           {isBreached && (
             <button
               onClick={handleEngageAuxiliary}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm"
             >
               <Power className="w-4 h-4" />
               <span>Engage Auxiliary Cold Pack</span>
@@ -137,190 +141,126 @@ export const IoTTelemetryDeck: React.FC = () => {
         </div>
       </div>
 
-      {/* Real-Time Metrics 4-Box Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-5">
+      {/* Main Temperature Display + Live Line Chart */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-5 items-center">
         
-        {/* Core Temperature */}
-        <div className={`p-4 rounded-xl border transition-colors ${
-          isBreached ? 'bg-rose-950/40 border-rose-500/50' : 'bg-[#141d2a] border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <Thermometer className={`w-4 h-4 ${isBreached ? 'text-rose-400' : 'text-sky-400'}`} />
-              Core Pulp Temp
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">Envelope: 0.5-2.5°C</span>
-          </div>
+        {/* Left Column: Big Temperature (Matching Reference Image: 4.2°C, Safe Range 2°C - 8°C) */}
+        <div className="space-y-2">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Current Temperature</span>
           <div className="flex items-baseline gap-2">
-            <span className={`text-3xl font-black font-mono ${
-              isBreached ? 'text-rose-400 animate-pulse' : 'text-white'
+            <span className={`text-5xl font-black font-mono tracking-tight ${
+              isBreached ? 'text-rose-600 dark:text-rose-400 animate-pulse' : 'text-slate-900 dark:text-white'
             }`}>
-              {currentTemp.toFixed(2)}°C
+              {currentTemp.toFixed(1)}°C
             </span>
           </div>
-          <span className={`text-[10px] font-semibold mt-1 block ${
-            isBreached ? 'text-rose-400' : 'text-emerald-400'
-          }`}>
-            {isBreached ? 'BREACH THRESHOLD EXCEEDED' : 'Normal Biological Latency'}
-          </span>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <Thermometer className="w-4 h-4" />
+            <span>Safe Range: 2°C – 8°C</span>
+          </div>
         </div>
 
-        {/* Humidity */}
-        <div className="p-4 bg-[#141d2a] border border-slate-800 rounded-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <Droplets className="w-4 h-4 text-sky-400" />
-              Relative Humidity
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">Target: 90-95%</span>
+        {/* Right Column (2 Cols): Clean Line Chart */}
+        <div className="md:col-span-2 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+            <span>Cold-Storage Continuous Variance</span>
+            <span>Target Envelope: 2.0°C - 8.0°C</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black font-mono text-white">
-              {currentHumidity.toFixed(1)}%
-            </span>
-            <span className="text-xs text-slate-400 font-mono">RH</span>
-          </div>
-          <span className="text-[10px] font-semibold text-emerald-400 mt-1 block">
-            Anti-Dehydration Vapor Nominal
-          </span>
-        </div>
 
-        {/* Compressor Duty */}
-        <div className="p-4 bg-[#141d2a] border border-slate-800 rounded-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <Cpu className="w-4 h-4 text-amber-400" />
-              Compressor Duty
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">Carrier Vector 1550</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className={`text-3xl font-black font-mono ${
-              isBreached ? 'text-rose-400' : 'text-white'
-            }`}>
-              {compressorDuty}%
-            </span>
-            <span className="text-xs text-slate-400 font-mono">Load</span>
-          </div>
-          <span className="text-[10px] font-semibold text-slate-400 mt-1 block">
-            {isBreached ? 'Auxiliary Auto-Kick Armed' : 'Modulated Inverter Drive'}
-          </span>
-        </div>
+          <div className="w-full h-32 relative bg-slate-50 dark:bg-[#0a1017] border border-slate-200 dark:border-slate-800 rounded-xl p-2 overflow-hidden">
+            <svg
+              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+              className="w-full h-full overflow-visible"
+              preserveAspectRatio="none"
+            >
+              {/* Safe Range Shaded Area (2°C to 8°C) */}
+              <rect
+                x="0"
+                y={chartHeight - ((8.0 - minTemp) / (maxTemp - minTemp)) * chartHeight}
+                width={chartWidth}
+                height={((8.0 - 2.0) / (maxTemp - minTemp)) * chartHeight}
+                fill="#10b981"
+                fillOpacity="0.08"
+              />
 
-        {/* Battery State of Health */}
-        <div className="p-4 bg-[#141d2a] border border-slate-800 rounded-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span className="flex items-center gap-1">
-              <BatteryCharging className="w-4 h-4 text-emerald-400" />
-              Sensor Battery SOH
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">LiFePO4 Cell</span>
+              {/* Threshold Lines */}
+              <line
+                x1="0"
+                y1={chartHeight - ((8.0 - minTemp) / (maxTemp - minTemp)) * chartHeight}
+                x2={chartWidth}
+                y2={chartHeight - ((8.0 - minTemp) / (maxTemp - minTemp)) * chartHeight}
+                stroke="#ef4444"
+                strokeWidth="1"
+                strokeDasharray="4,4"
+                strokeOpacity="0.6"
+              />
+
+              {/* Temperature Polyline */}
+              <polyline
+                fill="none"
+                stroke={isBreached ? '#ef4444' : '#10b981'}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={getPoints()}
+              />
+            </svg>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black font-mono text-white">
-              {batterySoc}%
-            </span>
-            <span className="text-xs text-slate-400 font-mono">State of Health</span>
+
+          <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>10:00</span>
+            <span>12:00</span>
+            <span>14:00</span>
+            <span>16:00</span>
+            <span>18:00</span>
           </div>
-          <span className="text-[10px] font-semibold text-emerald-400 mt-1 block">
-            Solar Auxiliary Assisted
-          </span>
         </div>
 
       </div>
 
-      {/* Live Vector SVG Waveform Curve */}
-      <div className="p-4 bg-[#0a1017] border border-slate-800 rounded-xl space-y-2">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span className="font-semibold text-white flex items-center gap-2">
-            <span>Continuous Thermal Envelope Waveform</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block"></span>
-          </span>
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span className="flex items-center gap-1 text-slate-400">
-              <span className="w-3 h-0.5 bg-emerald-500 inline-block"></span> Safe Ceiling (2.5°C)
-            </span>
-            <span className="flex items-center gap-1 text-rose-400">
-              <span className="w-3 h-0.5 bg-rose-500 inline-block"></span> Critical Breach (4.0°C)
-            </span>
+      {/* Sensor Data Bar matching Reference Image: Humidity 85%, Door Status Closed, Power Normal, Last Updated 2 min ago */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+        
+        <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <Droplets className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Humidity</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white font-mono">{currentHumidity.toFixed(0)}%</span>
           </div>
         </div>
 
-        {/* Responsive SVG Chart */}
-        <div className="w-full h-36 relative overflow-hidden">
-          <svg
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            className="w-full h-full overflow-visible"
-            preserveAspectRatio="none"
-          >
-            {/* Safe Zone Shading (0.5°C to 2.5°C) */}
-            <rect
-              x="0"
-              y={chartHeight - ((2.5 - minTemp) / (maxTemp - minTemp)) * chartHeight}
-              width={chartWidth}
-              height={((2.5 - 0.5) / (maxTemp - minTemp)) * chartHeight}
-              fill="#10b981"
-              fillOpacity="0.08"
-            />
-
-            {/* Critical Threshold Line at 4.0°C */}
-            <line
-              x1="0"
-              y1={chartHeight - ((4.0 - minTemp) / (maxTemp - minTemp)) * chartHeight}
-              x2={chartWidth}
-              y2={chartHeight - ((4.0 - minTemp) / (maxTemp - minTemp)) * chartHeight}
-              stroke="#ef4444"
-              strokeWidth="1.5"
-              strokeDasharray="4,4"
-              strokeOpacity="0.7"
-            />
-
-            {/* Safe Ceiling Line at 2.5°C */}
-            <line
-              x1="0"
-              y1={chartHeight - ((2.5 - minTemp) / (maxTemp - minTemp)) * chartHeight}
-              x2={chartWidth}
-              y2={chartHeight - ((2.5 - minTemp) / (maxTemp - minTemp)) * chartHeight}
-              stroke="#10b981"
-              strokeWidth="1"
-              strokeOpacity="0.5"
-            />
-
-            {/* Real-Time Temperature Polyline */}
-            <polyline
-              fill="none"
-              stroke={isBreached ? '#f43f5e' : '#38bdf8'}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              points={getPoints()}
-            />
-
-            {/* Latest Reading Indicator Dot */}
-            {history.length > 0 && (() => {
-              const last = history[history.length - 1]!;
-              const lastX = chartWidth;
-              const normalizedY = (last.coreTemp - minTemp) / (maxTemp - minTemp);
-              const lastY = chartHeight - normalizedY * chartHeight;
-              return (
-                <circle
-                  cx={lastX}
-                  cy={lastY}
-                  r="5"
-                  fill={isBreached ? '#f43f5e' : '#38bdf8'}
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                />
-              );
-            })()}
-          </svg>
+        <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <DoorClosed className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Door Status</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Closed</span>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-900">
-          <span>-45 Seconds Ago</span>
-          <span>Buffer: 30 Rolling Telemetry Cycles</span>
-          <span>Now (Live WebSocket Emulation)</span>
+        <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Power</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white">Normal</span>
+          </div>
         </div>
+
+        <div className="p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+            <Clock className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase">Last Updated</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-white">2 min ago</span>
+          </div>
+        </div>
+
       </div>
 
     </div>

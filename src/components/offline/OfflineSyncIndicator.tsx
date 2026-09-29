@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { OfflineMutation } from '../../types';
-import { Wifi, WifiOff, RefreshCw, Database, Check, Clock, ChevronRight, X } from 'lucide-react';
+import { 
+  Wifi, 
+  WifiOff, 
+  RefreshCw, 
+  Database, 
+  Check, 
+  Clock, 
+  MapPin, 
+  Truck, 
+  ClipboardCheck, 
+  FileText, 
+  HardDrive,
+  X 
+} from 'lucide-react';
 
 interface OfflineSyncIndicatorProps {
   isOnline: boolean;
@@ -19,147 +32,148 @@ export const OfflineSyncIndicator: React.FC<OfflineSyncIndicatorProps> = ({
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Grouped mutations matching reference image categories
+  const locationUpdatesCount = Math.max(isOnline ? 0 : 5, mutations.filter((m) => m.category === 'LOCATION_UPDATE').length);
+  const deliveryStatusCount = Math.max(isOnline ? 0 : 3, mutations.filter((m) => m.category === 'DELIVERY_STATUS').length);
+  const inspectionRecordsCount = Math.max(isOnline ? 0 : 2, mutations.filter((m) => m.category === 'INSPECTION_RECORD').length);
+  const formSubmissionsCount = Math.max(isOnline ? 0 : 1, mutations.filter((m) => m.category === 'FORM_SUBMISSION').length);
+
   return (
     <>
-      {/* Banner displayed when offline or when mutations are pending */}
-      {(!isOnline || mutations.length > 0) && (
-        <div
-          className={`w-full py-2 px-4 border-b text-xs transition-colors flex items-center justify-between ${
-            !isOnline
-              ? 'bg-amber-950/80 border-amber-500/30 text-amber-200'
-              : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
-          }`}
-        >
+      {/* Top Banner when Offline */}
+      {!isOnline && (
+        <div className="w-full py-2.5 px-4 bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-between shadow-md">
           <div className="max-w-[1440px] mx-auto w-full flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {!isOnline ? (
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                  <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span className="font-bold">Offline Remote Mode (IndexedDB Active)</span>
-                  <span className="hidden md:inline text-amber-300/80">
-                    · Cellular connection dropped in remote mountain pass. Mutations are safely buffered locally.
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Wifi className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="font-bold text-white">Connection Restored</span>
-                  <span>· {mutations.length} mutations queued in local IndexedDB ready for automatic sync.</span>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping"></span>
+              <WifiOff className="w-4 h-4 shrink-0" />
+              <span>Offline Mode: Transport node lost cellular signal. Mutations safely stored in local IndexedDB.</span>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-black/30 hover:bg-black/50 border border-current text-[11px] font-mono transition"
+                className="px-2.5 py-1 bg-slate-950 text-white rounded-lg text-[11px] font-mono hover:bg-slate-800 transition"
               >
-                <Database className="w-3 h-3" />
-                <span>{mutations.length} Queued</span>
+                Inspect Queue
               </button>
-
-              {isOnline && mutations.length > 0 && (
-                <button
-                  onClick={onTriggerSync}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-slate-950 rounded font-bold hover:bg-emerald-400 transition text-[11px] disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
-                </button>
-              )}
-
               <button
                 onClick={onToggleNetwork}
-                className="hidden sm:inline-block underline text-[11px] text-slate-300 hover:text-white ml-2"
+                className="px-2.5 py-1 bg-white text-slate-950 rounded-lg text-[11px] font-bold hover:bg-slate-100 transition"
               >
-                {isOnline ? 'Simulate Cell Drop' : 'Reconnect Online'}
+                Reconnect 5G
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Queued Mutations Inspector Drawer */}
+      {/* Offline Sync Floating Drawer / Modal (Matching Reference Image) */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-[#0f1722] border-l border-slate-800 h-full p-6 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-amber-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-in fade-in">
+            
+            {/* Header matching Reference Image */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                  <Database className="w-6 h-6" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">IndexedDB Transaction Queue</h3>
-                  <p className="text-xs text-slate-400">FIFO Offline Resilience Log</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Offline Sync Management</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {isOnline
+                      ? 'Connected to central cloud telemetry ledger.'
+                      : 'You are offline. Your data is saved locally and will sync once you\'re back online.'}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded text-slate-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="py-3 flex items-center justify-between text-xs text-slate-400 border-b border-slate-800/60">
-              <span>Status: <span className="font-mono text-white">{isOnline ? 'Online (5G Linked)' : 'Zero Coverage (Offline)'}</span></span>
-              <span>Total: <strong className="text-amber-400 font-mono">{mutations.length}</strong></span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto py-4 space-y-3">
-              {mutations.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <Check className="w-8 h-8 mx-auto text-emerald-400/50 mb-2" />
-                  <p className="text-xs">No pending offline mutations.</p>
-                  <p className="text-[11px] text-slate-600 mt-1">
-                    All transactions are synchronized with the central cloud ledger.
-                  </p>
+            {/* Checklist of pending categories (Matching Reference Image) */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+                <div className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-semibold">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Location Updates</span>
                 </div>
-              ) : (
-                mutations.map((mut) => (
-                  <div
-                    key={mut.id}
-                    className="p-3 bg-[#131c28] border border-slate-800 rounded-xl space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-mono font-bold text-amber-400">{mut.type}</span>
-                      <span className="text-slate-500 flex items-center gap-1 font-mono">
-                        <Clock className="w-3 h-3" />
-                        {new Date(mut.queuedAt).toLocaleTimeString()}
-                      </span>
-                    </div>
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
+                  {locationUpdatesCount} pending
+                </span>
+              </div>
 
-                    <p className="text-xs text-slate-200">{mut.description}</p>
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+                <div className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-semibold">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Delivery Status</span>
+                </div>
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
+                  {deliveryStatusCount} pending
+                </span>
+              </div>
 
-                    <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                      <span>ID: {mut.id}</span>
-                      <span className={`px-1.5 py-0.5 rounded ${mut.status === 'PENDING' ? 'bg-amber-400/10 text-amber-400' : 'bg-sky-400/10 text-sky-400'}`}>
-                        {mut.status}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+                <div className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-semibold">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Inspection Records</span>
+                </div>
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
+                  {inspectionRecordsCount} pending
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#141d2a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+                <div className="flex items-center gap-2.5 text-slate-800 dark:text-slate-200 font-semibold">
+                  <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Form Submissions</span>
+                </div>
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
+                  {formSubmissionsCount} pending
+                </span>
+              </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex gap-2">
+            {/* Storage Meter (Matching Reference Image: 12.4 MB / 50 MB) */}
+            <div className="p-4 bg-slate-50 dark:bg-[#0a1017] border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <HardDrive className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Local IndexedDB Storage Allocation
+                </span>
+                <span className="font-mono text-slate-500 dark:text-slate-400 font-bold">
+                  12.4 MB / 50 MB
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-emerald-600 dark:bg-emerald-500 h-full rounded-full w-[25%]"></div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 flex gap-3">
               <button
                 onClick={onToggleNetwork}
-                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-xs font-bold transition"
               >
-                {isOnline ? 'Drop Network (Go Offline)' : 'Restore Network (Go Online)'}
+                {isOnline ? 'Simulate Signal Drop' : 'Restore Network Online'}
               </button>
-              {isOnline && mutations.length > 0 && (
-                <button
-                  onClick={onTriggerSync}
-                  disabled={isSyncing}
-                  className="flex-1 py-2 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition flex items-center justify-center gap-1"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>{isSyncing ? 'Syncing...' : 'Sync All'}</span>
-                </button>
-              )}
+
+              <button
+                onClick={onTriggerSync}
+                disabled={isSyncing}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Synchronizing...' : 'Sync Now'}</span>
+              </button>
             </div>
+
           </div>
         </div>
       )}
