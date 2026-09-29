@@ -5,7 +5,6 @@ import {
   ColdChainStatus, 
   PipelineStage, 
   OfflineMutation, 
-  ThemeMode, 
   LanguageCode, 
   TelemetryReading,
   TemperatureBreachRecord
@@ -26,21 +25,17 @@ import { WarehouseModule } from './components/warehouse/WarehouseModule';
 import { KanbanPipeline } from './components/pipeline/KanbanPipeline';
 import { ReportsModule } from './components/reports/ReportsModule';
 import { AuditorModule } from './components/auditor/AuditorModule';
-import { AIAssistantWidget } from './components/assistant/AIAssistantWidget';
 import { JudgeDefenseModal } from './components/demo/JudgeDefenseModal';
 import { 
   Flame, 
   Power, 
   Volume2, 
   VolumeX, 
-  ShieldAlert, 
-  ArrowRight, 
-  Thermometer 
+  ArrowRight
 } from 'lucide-react';
 
 export default function App() {
-  // Theme & Language State
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  // Language State (Light mode only)
   const [language, setLanguage] = useState<LanguageCode>('en');
 
   // Session & RBAC State
@@ -63,23 +58,18 @@ export default function App() {
   const [isThermalBreachActive, setIsThermalBreachActive] = useState<boolean>(() => telemetryService.isThermalBreachActive());
   const [isAlarmMuted, setIsAlarmMuted] = useState<boolean>(() => audioAlert.getMuted());
 
-  // Synchronize HTML element class for theme and dir for RTL
+  // Set up light mode and RTL on mount
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    }
+    root.classList.add('light');
+    root.classList.remove('dark');
 
     if (isRTL(language)) {
       root.setAttribute('dir', 'rtl');
     } else {
       root.setAttribute('dir', 'ltr');
     }
-  }, [theme, language]);
+  }, [language]);
 
   // Subscribe to Offline Storage Engine
   useEffect(() => {
@@ -91,13 +81,13 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to Live IoT Telemetry WebSocket Stream (Task 1: every 2000ms tick updates UI)
+  // Subscribe to Live IoT Telemetry Stream
   useEffect(() => {
     const unsubscribe = telemetryService.subscribe((reading, _hist, breach) => {
       setLatestReading(reading);
       setIsThermalBreachActive(breach);
 
-      // Reflect live sensor readings directly onto the targeted reefer batch in application state
+      // Reflect live sensor readings directly onto the targeted reefer batch
       setBatches((prevBatches) => {
         return prevBatches.map((b) => {
           if (b.id === '#ASG-001') {
@@ -127,7 +117,7 @@ export default function App() {
                   qualityImpactAssessment: 'SHELF_LIFE_REDUCED_10%',
                   quarantineTriggered: true,
                   auditorAck: false,
-                  blockchainHash: `0x7f8a${Date.now().toString(16).slice(-8)}3b21`
+                  blockchainHash: `LEDGER-REC-${crypto.randomUUID().substring(0, 8).toUpperCase()}`
                 };
                 updatedBreachRecords = [newRecord, ...b.breachRecords];
               }
@@ -161,18 +151,12 @@ export default function App() {
       });
     });
 
-    // Cleanup subscription to prevent memory leaks on unmount
     return () => {
       unsubscribe();
     };
   }, []);
 
-  // Theme Toggle with smooth transition
-  const handleToggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  // Handle Role Switching
+  // Handle Role Switching (with session validation)
   const handleSelectRole = (newRole: UserRole) => {
     const newSession = createSessionForRole(newRole);
     setSession(newSession);
@@ -190,9 +174,9 @@ export default function App() {
     const nextBreach = telemetryService.toggleThermalBreach('#ASG-001');
     setIsThermalBreachActive(nextBreach);
     if (nextBreach) {
-      showToast('EMERGENCY: Thermal Breach simulated (>4.0°C). Audio alarm triggered.');
+      showToast('⚠️ SIMULATION: Thermal Breach triggered (>4.0°C). Audio alarm activated.');
     } else {
-      showToast('Auxiliary cooling engaged. Thermal envelope restored.');
+      showToast('✓ Auxiliary cooling engaged. Thermal envelope restored.');
     }
   };
 
@@ -200,7 +184,7 @@ export default function App() {
   const handleEngageAuxiliaryCooling = () => {
     telemetryService.engageAuxiliaryCooling();
     setIsThermalBreachActive(false);
-    showToast('Auxiliary Cold Pack deployed! Rapid pull-down cooling active.');
+    showToast('✓ Auxiliary Cold Pack deployed! Rapid pull-down cooling active.');
   };
 
   // Handle Audio Alarm Mute Toggle
@@ -210,14 +194,14 @@ export default function App() {
     audioAlert.setMuted(nextMute);
   };
 
-  // Handle Manual Network Toggle (to demonstrate offline resilience)
+  // Handle Manual Network Toggle (simulation for offline resilience demo)
   const handleToggleNetwork = () => {
     const next = !isOnline;
     offlineStorage.setSimulatedNetworkState(next);
     if (!next) {
-      showToast('Switched to Offline Remote Mode. Mutations buffered in IndexedDB.');
+      showToast('📡 SIMULATION: Offline mode. Mutations buffered in IndexedDB.');
     } else {
-      showToast('Network restored. Reconnected to 5G cellular stream.');
+      showToast('📡 SIMULATION: Network restored. Sync initiated.');
       handleTriggerSync();
     }
   };
@@ -228,7 +212,6 @@ export default function App() {
     setIsSyncing(true);
 
     const { syncedCount } = await offlineStorage.syncQueuedMutations((mutation) => {
-      // Apply optimistic update into batches state if it was a created batch
       if (mutation.type === 'CREATE_BATCH') {
         const batch = mutation.payload as unknown as ProduceBatch;
         setBatches((prev) => {
@@ -240,7 +223,7 @@ export default function App() {
 
     audioAlert.playSyncChime();
     setIsSyncing(false);
-    showToast(`Successfully synchronized ${syncedCount} queued mutations to cloud ledger.`);
+    showToast(`✓ Synchronized ${syncedCount} mutations.`);
   }, [isSyncing, queuedMutations]);
 
   const showToast = (msg: string) => {
@@ -255,7 +238,7 @@ export default function App() {
     setBatches((prev) => [newBatch, ...prev]);
   };
 
-  // Update Batch Status handler (e.g. from Warehouse or Alert)
+  // Update Batch Status handler
   const handleUpdateBatchStatus = (batchId: string, status: ColdChainStatus) => {
     setBatches((prev) =>
       prev.map((b) => (b.id === batchId ? { ...b, coldChainStatus: status } : b))
@@ -271,86 +254,72 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0a1017] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       
-      {/* Top Bar Navigation (Strict 3-zone Top Bar Contract with Theme, Language & Breach Status) */}
+      {/* Top Navigation Bar */}
       <TopNavBar
         currentTab={activeTab}
         onSelectTab={setActiveTab}
         currentRole={session.role}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
-        onOpenJWTModal={() => setIsRoleModalOpen(true)}
         onOpenJudgePanel={() => setIsJudgeModalOpen(true)}
         isOnline={isOnline}
         onToggleNetwork={handleToggleNetwork}
         queuedCount={queuedMutations.length}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
         language={language}
         onSelectLanguage={setLanguage}
         isThermalBreachActive={isThermalBreachActive}
         onToggleThermalBreach={handleToggleThermalBreach}
       />
 
-      {/* Emergency Thermal Excursion Persistent Visual Alert Banner */}
+      {/* Emergency Thermal Breach Alert Banner */}
       {isThermalBreachActive && (
-        <div className="bg-rose-600 text-white border-b border-rose-500 py-3 px-4 sm:px-6 shadow-lg animate-breach-pulse z-30 transition-all">
+        <div className="bg-red-600 text-white border-b border-red-500 py-3 px-4 sm:px-6 shadow-md z-30">
           <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
-                <Flame className="w-5 h-5 text-white animate-bounce" />
+              <div className="w-9 h-9 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
+                <Flame className="w-5 h-5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-black text-xs uppercase px-2 py-0.5 bg-white text-rose-700 rounded-md tracking-wider">
-                    CRITICAL THERMAL EXCURSION
+                  <span className="font-mono font-bold text-xs uppercase px-2 py-0.5 bg-white text-red-700 rounded-md tracking-wide">
+                    THERMAL BREACH
                   </span>
-                  <span className="text-xs font-mono font-bold">
-                    Reefer Node #SN-04 · Batch #ASG-001 (Strawberries)
+                  <span className="text-xs font-mono">
+                    Reefer #SN-04 · Batch #ASG-001
                   </span>
                 </div>
-                <p className="text-xs text-rose-100 mt-0.5">
-                  Core temperature reached{' '}
-                  <span className="font-mono font-black underline">
-                    {(latestReading?.coreTemp || 6.2).toFixed(1)}°C
-                  </span>{' '}
-                  (Critical limit: 4.0°C). Compressor failure detected.
+                <p className="text-xs text-red-100 mt-0.5">
+                  Temperature: <span className="font-mono font-bold">{(latestReading?.coreTemp || 6.2).toFixed(1)}°C</span> (Limit: 4.0°C)
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end">
               <button
                 onClick={handleToggleAlarmMute}
-                title={isAlarmMuted ? 'Unmute Web Audio Alarm' : 'Mute Web Audio Alarm'}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition text-xs font-semibold flex items-center gap-1.5"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 transition text-xs font-semibold flex items-center gap-1.5"
               >
                 {isAlarmMuted ? (
-                  <>
-                    <VolumeX className="w-4 h-4" />
-                    <span>Unmute Alarm</span>
-                  </>
+                  <><VolumeX className="w-4 h-4" /><span>Unmute</span></>
                 ) : (
-                  <>
-                    <Volume2 className="w-4 h-4 animate-pulse" />
-                    <span>Mute Alarm</span>
-                  </>
+                  <><Volume2 className="w-4 h-4" /><span>Mute</span></>
                 )}
               </button>
 
               <button
                 onClick={handleEngageAuxiliaryCooling}
-                className="px-3.5 py-2 rounded-xl bg-white text-rose-700 hover:bg-rose-50 font-black text-xs transition shadow-sm flex items-center gap-1.5 active:scale-95"
+                className="px-3 py-2 rounded-lg bg-white text-red-700 hover:bg-red-50 font-bold text-xs transition flex items-center gap-1.5"
               >
-                <Power className="w-4 h-4 text-rose-600" />
-                <span>Engage Auxiliary Cooling</span>
+                <Power className="w-4 h-4" />
+                <span>Engage Cooling</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('warehouse')}
-                className="px-3 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs transition border border-rose-400 flex items-center gap-1 active:scale-95"
+                className="px-3 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white font-bold text-xs transition border border-red-400 flex items-center gap-1"
               >
-                <span>Inspect Batch</span>
+                <span>Inspect</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -358,7 +327,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Offline Synchronization Banner & Resilience Controls */}
+      {/* Offline Synchronization Banner */}
       <OfflineSyncIndicator
         isOnline={isOnline}
         onToggleNetwork={handleToggleNetwork}
@@ -367,7 +336,7 @@ export default function App() {
         isSyncing={isSyncing}
       />
 
-      {/* Main Viewport Content */}
+      {/* Main Content */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {activeTab === 'overview' && (
           <CommandOverview
@@ -392,9 +361,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'transporter' && (
-          <TransporterModule />
-        )}
+        {activeTab === 'transporter' && <TransporterModule />}
 
         {activeTab === 'warehouse' && (
           <WarehouseModule
@@ -411,46 +378,36 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'reports' && (
-          <ReportsModule
-            batches={batches}
-          />
-        )}
+        {activeTab === 'reports' && <ReportsModule batches={batches} />}
 
-        {activeTab === 'auditor' && (
-          <AuditorModule
-            batches={batches}
-          />
-        )}
+        {activeTab === 'auditor' && <AuditorModule batches={batches} />}
       </main>
 
-      {/* Bottom Footer (Clean single-line footer) */}
-      <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#070b10] py-4 px-6 text-xs text-slate-500 dark:text-slate-400">
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white py-4 px-6 text-xs text-slate-600">
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 dark:text-white">AgriSupply Platform</span>
-            <span>·</span>
-            <span>Farm to Future Cold-Chain Protocol</span>
-            <span>·</span>
-            <span className="font-mono text-emerald-600 dark:text-emerald-400">
-              IoT Telemetry Stream (2000ms Ticks)
-            </span>
+            <span className="font-bold text-slate-900">AgriSupply</span>
+            <span>•</span>
+            <span>Farm to Future Cold-Chain Platform</span>
+            <span>•</span>
+            <span className="font-mono text-emerald-700">Simulation Demo v1.0</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span>Compliance Workflow Demo (PSQCA & GlobalGAP Standards)</span>
-            <span>·</span>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span>Competition Demonstration</span>
+            <span>•</span>
             <button
               onClick={() => setIsRoleModalOpen(true)}
-              className="text-emerald-700 dark:text-amber-400 hover:underline"
+              className="text-emerald-700 hover:underline font-mono"
             >
-              Session: {session.name} ({session.role})
+              {session.name} ({session.role})
             </button>
           </div>
         </div>
       </footer>
 
-      {/* Role Switcher & JWT Security Modal */}
+      {/* Role Switcher Modal */}
       <RoleSwitcherModal
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
@@ -459,15 +416,7 @@ export default function App() {
         currentToken={session.token}
       />
 
-      {/* Floating Role-Aware AI Assistant Widget */}
-      <AIAssistantWidget
-        currentRole={session.role}
-        batches={batches}
-        isThermalBreachActive={isThermalBreachActive}
-        theme={theme}
-      />
-
-      {/* Competition Technical Defense & Diagnostics Modal */}
+      {/* Judge Defense Modal */}
       <JudgeDefenseModal
         isOpen={isJudgeModalOpen}
         onClose={() => setIsJudgeModalOpen(false)}
@@ -483,14 +432,13 @@ export default function App() {
         onNavigateTab={setActiveTab}
       />
 
-      {/* Toast Notification Container */}
+      {/* Toast Notification */}
       {syncToastMessage && (
-        <div className="fixed bottom-6 left-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <div className="fixed bottom-6 left-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
           <span className="text-xs font-medium">{syncToastMessage}</span>
         </div>
       )}
-
     </div>
   );
 }
