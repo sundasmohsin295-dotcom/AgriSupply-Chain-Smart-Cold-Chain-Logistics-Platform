@@ -27,6 +27,7 @@ import { KanbanPipeline } from './components/pipeline/KanbanPipeline';
 import { ReportsModule } from './components/reports/ReportsModule';
 import { AuditorModule } from './components/auditor/AuditorModule';
 import { AIAssistantWidget } from './components/assistant/AIAssistantWidget';
+import { JudgeDefenseModal } from './components/demo/JudgeDefenseModal';
 import { 
   Flame, 
   Power, 
@@ -45,6 +46,7 @@ export default function App() {
   // Session & RBAC State
   const [session, setSession] = useState(() => getStoredSession());
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
 
   // Network & Offline-First State
@@ -278,6 +280,7 @@ export default function App() {
         currentRole={session.role}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
         onOpenJWTModal={() => setIsRoleModalOpen(true)}
+        onOpenJudgePanel={() => setIsJudgeModalOpen(true)}
         isOnline={isOnline}
         onToggleNetwork={handleToggleNetwork}
         queuedCount={queuedMutations.length}
@@ -435,7 +438,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span>USDA-AMS & GlobalGAP Certified</span>
+            <span>Compliance Workflow Demo (PSQCA & GlobalGAP Standards)</span>
             <span>·</span>
             <button
               onClick={() => setIsRoleModalOpen(true)}
@@ -462,6 +465,22 @@ export default function App() {
         batches={batches}
         isThermalBreachActive={isThermalBreachActive}
         theme={theme}
+      />
+
+      {/* Competition Technical Defense & Diagnostics Modal */}
+      <JudgeDefenseModal
+        isOpen={isJudgeModalOpen}
+        onClose={() => setIsJudgeModalOpen(false)}
+        currentRole={session.role}
+        isOnline={isOnline}
+        onToggleNetwork={handleToggleNetwork}
+        isThermalBreachActive={isThermalBreachActive}
+        onToggleThermalBreach={handleToggleThermalBreach}
+        onEngageAuxiliaryCooling={handleEngageAuxiliaryCooling}
+        latestReading={latestReading}
+        queuedMutations={queuedMutations}
+        batches={batches}
+        onNavigateTab={setActiveTab}
       />
 
       {/* Toast Notification Container */}

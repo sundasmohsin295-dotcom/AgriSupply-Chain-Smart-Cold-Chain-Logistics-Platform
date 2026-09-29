@@ -162,13 +162,13 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={24} durationMs={800} />
+              <AnimatedCounter value={batches.length} durationMs={800} />
             </span>
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-              ↑ 12%
+              Derived
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 font-mono">vs last week</span>
+          <span className="text-[10px] text-slate-400 font-mono">Ledger Batch Lots</span>
         </div>
 
         {/* In Transit */}
@@ -179,10 +179,10 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={inTransitCount || 12} durationMs={800} />
+              <AnimatedCounter value={inTransitCount} durationMs={800} />
             </span>
             <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center">
-              ↑ 8%
+              Active
             </span>
           </div>
           <span className="text-[10px] text-slate-400 font-mono">Live GPS tracking</span>
@@ -196,10 +196,10 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={deliveredCount || 8} durationMs={800} />
+              <AnimatedCounter value={deliveredCount} durationMs={800} />
             </span>
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-              ↑ 20%
+              Verified
             </span>
           </div>
           <span className="text-[10px] text-slate-400 font-mono">Completed routes</span>
@@ -217,10 +217,10 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className={`text-3xl font-black ${isThermalBreachActive ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-              <AnimatedCounter value={warehouseCount || 4} durationMs={800} />
+              <AnimatedCounter value={warehouseCount} durationMs={800} />
             </span>
             <span className={`text-xs font-bold ${isThermalBreachActive ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
-              {isThermalBreachActive ? 'BREACH' : '↑ 0%'}
+              {isThermalBreachActive ? 'BREACH' : 'Nominal'}
             </span>
           </div>
           <span className="text-[10px] text-slate-400 font-mono">Active cold chambers</span>

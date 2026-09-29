@@ -78,7 +78,7 @@ export const RoleSwitcherModal: React.FC<RoleSwitcherModalProps> = ({
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Select Role Persona (4 Roles)
+            Select Role Persona (5 Roles)
           </button>
           <button
             onClick={() => setActiveTab('jwt')}

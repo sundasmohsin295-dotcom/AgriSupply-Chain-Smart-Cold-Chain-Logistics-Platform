@@ -32,15 +32,15 @@ export function generateCompliancePDF(
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('AGRISUPPLY COLD-CHAIN INTEGRITY DISPATCH CERTIFICATE', 14, 16);
+  doc.text('AGRISUPPLY COLD-CHAIN DISPATCH & COMPLIANCE REPORT', 14, 16);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184); // slate-400
-  doc.text('USDA-AMS FSMA Rule 204 & GlobalGAP Chain of Custody Standard Protocol', 14, 23);
-  doc.text(`Certificate Timestamp: ${new Date().toISOString()}`, 14, 29);
+  doc.text('Cold-Chain Traceability & Integrity Protocol (PSQCA & GlobalGAP Standards Demo)', 14, 23);
+  doc.text(`Report Generated Timestamp: ${new Date().toISOString()}`, 14, 29);
 
-  // Blockchain Hash Callout Banner
+  // Cryptographic Ledger Seal Hash Callout Banner
   doc.setFillColor(241, 245, 249);
   doc.setDrawColor(203, 213, 225);
   doc.roundedRect(14, 45, 182, 22, 2, 2, 'FD');
@@ -48,7 +48,7 @@ export function generateCompliancePDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  doc.text('IMMUTABLE BLOCKCHAIN VERIFICATION HASH (LEDGER COMMIT)', 20, 52);
+  doc.text('CRYPTOGRAPHIC LEDGER INTEGRITY SEAL HASH (DEMO SHA-256)', 20, 52);
 
   doc.setFont('courier', 'bold');
   doc.setFontSize(10);

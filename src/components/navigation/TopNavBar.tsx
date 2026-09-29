@@ -12,7 +12,8 @@ import {
   Globe, 
   Leaf, 
   ChevronDown,
-  Flame
+  Flame,
+  Cpu
 } from 'lucide-react';
 
 interface TopNavBarProps {
@@ -21,6 +22,7 @@ interface TopNavBarProps {
   currentRole: UserRole;
   onOpenRoleModal: () => void;
   onOpenJWTModal: () => void;
+  onOpenJudgePanel?: () => void;
   isOnline: boolean;
   onToggleNetwork: () => void;
   queuedCount: number;
@@ -38,6 +40,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   currentRole,
   onOpenRoleModal,
   onOpenJWTModal,
+  onOpenJudgePanel,
   isOnline,
   onToggleNetwork,
   queuedCount,
@@ -202,6 +205,18 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
               </>
             )}
           </button>
+
+          {/* Judge Defense & System Diagnostics Action */}
+          {onOpenJudgePanel && (
+            <button
+              onClick={onOpenJudgePanel}
+              title="Open Technical Judge Defense & System Diagnostics Panel"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-slate-300 dark:border-slate-700/80 transition shadow-xs whitespace-nowrap active:scale-95"
+            >
+              <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden lg:inline font-mono">Judge Defense</span>
+            </button>
+          )}
 
           {/* Role Switcher Action */}
           <button

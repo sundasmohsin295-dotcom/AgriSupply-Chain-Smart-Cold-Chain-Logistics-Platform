@@ -198,3 +198,88 @@ export interface ChatMessage {
   timestamp: string;
   quickActions?: string[];
 }
+
+export interface Tenant {
+  id: string;
+  name: string;
+  region: string;
+  regulatoryCode: string;
+  allowedCommodities: ProduceCommodity[];
+}
+
+export interface TelemetryEvent {
+  eventId: string;
+  tenantId: string;
+  sensorId: string;
+  truckId: string;
+  batchId: string;
+  timestamp: string;
+  temperatureC: number;
+  humidityPercent: number;
+  compressorDuty: number;
+  batterySoc: number;
+  status: ColdChainStatus;
+}
+
+export type NetworkConnectivityState = 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'SYNCING' | 'SYNC_ERROR';
+
+export type GeofenceState = 'OUTSIDE' | 'APPROACHING' | 'ENTERED' | 'EXITED';
+
+export interface GeofenceEventLog {
+  id: string;
+  truckId: string;
+  zoneId: string;
+  zoneName: string;
+  type: 'GEOFENCE_ENTER' | 'GEOFENCE_EXIT';
+  timestamp: string;
+  distanceMeters: number;
+  latitude: number;
+  longitude: number;
+}
+
+export interface RouteWeatherCondition {
+  locationName: string;
+  latitude: number;
+  longitude: number;
+  temperatureC: number;
+  humidityPercent: number;
+  windSpeedKmh: number;
+  weatherCode: number;
+  weatherDescription: string;
+  isDay: boolean;
+  transitRiskLevel: 'LOW' | 'MODERATE' | 'SEVERE_THERMAL_LOAD';
+  lastUpdated: string;
+  isLive: boolean;
+}
+
+export type AuditEventType =
+  | 'AUTH_LOGIN'
+  | 'AUTH_LOGOUT'
+  | 'BATCH_CREATED'
+  | 'INSPECTION_SUBMITTED'
+  | 'SHIPMENT_CREATED'
+  | 'SHIPMENT_STAGE_CHANGED'
+  | 'GPS_UPDATE'
+  | 'GEOFENCE_ENTER'
+  | 'GEOFENCE_EXIT'
+  | 'TELEMETRY_RECEIVED'
+  | 'THERMAL_BREACH'
+  | 'AUXILIARY_COOLING_ENGAGED'
+  | 'OFFLINE_ENTERED'
+  | 'SYNC_STARTED'
+  | 'SYNC_COMPLETED'
+  | 'SYNC_FAILED'
+  | 'REPORT_GENERATED'
+  | 'WEATHER_FETCHED';
+
+export interface ApplicationAuditEvent {
+  id: string;
+  type: AuditEventType;
+  timestamp: string;
+  tenantId: string;
+  actor: string;
+  role: UserRole;
+  details: string;
+  metadata?: Record<string, unknown>;
+}
+

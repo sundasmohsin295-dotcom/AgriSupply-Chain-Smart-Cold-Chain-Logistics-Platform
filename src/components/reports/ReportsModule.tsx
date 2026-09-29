@@ -11,6 +11,7 @@ import {
   MultiPageExportProgress, 
   MultiPageExportResult 
 } from '../../lib/multiPageExport';
+import { PDFReceiptVerificationQR } from './PDFReceiptVerificationQR';
 import { 
   FileText, 
   Download, 
@@ -529,6 +530,9 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({ batches }) => {
           </label>
         </div>
       </div>
+
+      {/* Mandatory Feature: PDF Receipt SHA-256 Hash & QR Code Verification Component */}
+      <PDFReceiptVerificationQR batches={batches} />
 
       {/* Grid: Charts View on Left + Custom Report Generator on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

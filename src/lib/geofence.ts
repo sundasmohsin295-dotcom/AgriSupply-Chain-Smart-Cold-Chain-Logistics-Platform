@@ -46,10 +46,19 @@ export function evaluateVehicleGeofences(
   nearestZone: GeofenceZone | null;
   distanceMeters: number;
   isInside: boolean;
+  insideGeofence: boolean;
+  distanceToNearestMeters: number;
   alertLevel: 'NORMAL' | 'APPROACHING' | 'BREACH_ENTERED';
 } {
   if (zones.length === 0) {
-    return { nearestZone: null, distanceMeters: Infinity, isInside: false, alertLevel: 'NORMAL' };
+    return { 
+      nearestZone: null, 
+      distanceMeters: Infinity, 
+      distanceToNearestMeters: Infinity, 
+      isInside: false, 
+      insideGeofence: false, 
+      alertLevel: 'NORMAL' 
+    };
   }
 
   let nearestZone: GeofenceZone = zones[0]!;
@@ -70,7 +79,9 @@ export function evaluateVehicleGeofences(
   return {
     nearestZone,
     distanceMeters: Math.round(minDistance),
+    distanceToNearestMeters: Math.round(minDistance),
     isInside,
+    insideGeofence: isInside,
     alertLevel: isInside ? 'BREACH_ENTERED' : isApproaching ? 'APPROACHING' : 'NORMAL'
   };
 }
