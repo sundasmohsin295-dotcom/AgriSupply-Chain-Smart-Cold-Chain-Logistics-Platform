@@ -1,0 +1,6 @@
+{
+  "name": "AgriSupply Chain & Smart Cold-Chain Logistics Platform",
+  "description": "Enterprise-grade smart agricultural supply chain platform tracking farm-to-table produce with live IoT reefer telemetry, offline IndexedDB resilience, geofencing, multi-tenant RBAC, and blockchain compliance verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
