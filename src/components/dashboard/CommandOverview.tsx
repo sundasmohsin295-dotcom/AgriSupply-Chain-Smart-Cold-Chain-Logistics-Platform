@@ -25,6 +25,8 @@ import { motion } from 'motion/react';
 import { IoTTelemetryDeck } from '../telemetry/IoTTelemetryDeck';
 import { exportBatchesWithTelemetryAndBreachesCSV } from '../../lib/reportGenerator';
 import { AnimatedCounter } from '../ui/AnimatedCounter';
+import { InteractiveColdChainHero } from './InteractiveColdChainHero';
+import { DashboardWidget } from './DashboardWidget';
 
 interface CommandOverviewProps {
   onNavigateTab: (tab: string) => void;
@@ -83,6 +85,17 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
       animate="visible"
       className="space-y-6"
     >
+
+      {/* Cinematic Interactive Hero Section (From Farm to Future Freshness Guaranteed) */}
+      <motion.div variants={itemVariants}>
+        <InteractiveColdChainHero
+          onNavigateTab={onNavigateTab}
+          isThermalBreachActive={isThermalBreachActive}
+          onToggleThermalBreach={onToggleThermalBreach}
+          latestReading={latestReading}
+          batchesCount={batches.length}
+        />
+      </motion.div>
 
       {/* Top Welcome Bar (Matching Reference Image with Live Stream & Thermal Breach Toggle) */}
       <motion.div
@@ -151,81 +164,14 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
         </div>
       </motion.div>
 
-      {/* 4 Key Metric Cards with Animated Number Count-Ups */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Total Shipments */}
-        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-            <span className="font-semibold">{t.totalShipments}</span>
-            <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={batches.length} durationMs={800} />
-            </span>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-              Derived
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-mono">Ledger Batch Lots</span>
-        </div>
-
-        {/* In Transit */}
-        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-            <span className="font-semibold">{t.inTransit}</span>
-            <Truck className="w-4 h-4 text-sky-500" />
-          </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={inTransitCount} durationMs={800} />
-            </span>
-            <span className="text-xs font-bold text-sky-600 dark:text-sky-400 flex items-center">
-              Active
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-mono">Live GPS tracking</span>
-        </div>
-
-        {/* Delivered */}
-        <div className="p-4 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-            <span className="font-semibold">{t.delivered}</span>
-            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className="text-3xl font-black text-slate-900 dark:text-white">
-              <AnimatedCounter value={deliveredCount} durationMs={800} />
-            </span>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-              Verified
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-mono">Completed routes</span>
-        </div>
-
-        {/* Cold Storage */}
-        <div className={`p-4 rounded-2xl border transition-all shadow-sm flex flex-col justify-between ${
-          isThermalBreachActive
-            ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-500/50'
-            : 'bg-white dark:bg-[#0f1722] border-slate-200 dark:border-slate-800'
-        }`}>
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-            <span className="font-semibold">{t.coldStorage}</span>
-            <Thermometer className={`w-4 h-4 ${isThermalBreachActive ? 'text-rose-500' : 'text-amber-500'}`} />
-          </div>
-          <div className="flex items-baseline gap-2 mb-1">
-            <span className={`text-3xl font-black ${isThermalBreachActive ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-              <AnimatedCounter value={warehouseCount} durationMs={800} />
-            </span>
-            <span className={`text-xs font-bold ${isThermalBreachActive ? 'text-rose-600 dark:text-rose-400' : 'text-slate-400'}`}>
-              {isThermalBreachActive ? 'BREACH' : 'Nominal'}
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-mono">Active cold chambers</span>
-        </div>
-
+      {/* Real-Time Key Performance Indicators Widget (Total Transit Volume, Active Breach Alerts, System Uptime) */}
+      <motion.div variants={itemVariants}>
+        <DashboardWidget
+          batches={batches}
+          isThermalBreachActive={isThermalBreachActive}
+          onNavigateTab={onNavigateTab}
+          latestReading={latestReading}
+        />
       </motion.div>
 
       {/* Supply Chain Overview Flow (Matching Reference Image) */}

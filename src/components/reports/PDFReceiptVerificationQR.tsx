@@ -26,6 +26,7 @@ import {
   Terminal,
   HelpCircle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface PDFReceiptVerificationQRProps {
   batches: ProduceBatch[];
@@ -179,33 +180,62 @@ export const PDFReceiptVerificationQR: React.FC<PDFReceiptVerificationQRProps> =
         {/* Left Column (4 cols): High-Resolution QR Code & Direct Actions */}
         <div className="lg:col-span-4 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-[#090e15] border border-slate-200 dark:border-slate-800/80 rounded-2xl relative">
           
-          <div className="relative group">
-            {isGenerating ? (
-              <div className="w-56 h-56 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner">
-                <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
-                <span className="text-xs font-mono font-medium text-slate-500">
-                  Computing SHA-256 Digest...
-                </span>
-              </div>
-            ) : verification ? (
-              <div className="p-3 bg-white rounded-2xl shadow-md border-2 border-slate-200 dark:border-slate-700 relative">
-                {/* Visual Scanner Framing Marks */}
-                <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-600 rounded-tl-sm pointer-events-none"></div>
-                <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-600 rounded-tr-sm pointer-events-none"></div>
-                <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-600 rounded-bl-sm pointer-events-none"></div>
-                <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-600 rounded-br-sm pointer-events-none"></div>
+          <div className="relative group w-full flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {isGenerating ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-56 h-56 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner"
+                >
+                  <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+                  <span className="text-xs font-mono font-medium text-slate-500">
+                    Computing SHA-256 Digest...
+                  </span>
+                </motion.div>
+              ) : verification ? (
+                <motion.div
+                  key={verification.sha256Hex}
+                  initial={{ opacity: 0, scale: 0.86, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, scale: 0.92, filter: 'blur(2px)' }}
+                  transition={{ 
+                    type: 'spring',
+                    damping: 22,
+                    stiffness: 240,
+                    mass: 0.8
+                  }}
+                  className="p-3.5 bg-white rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 relative overflow-hidden group/qr"
+                >
+                  {/* High-Tech Laser Holographic Scan Line on Appearance */}
+                  <motion.div
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: [0, 220, 0], opacity: [0, 0.85, 0] }}
+                    transition={{ duration: 2.2, ease: 'easeInOut' }}
+                    className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent pointer-events-none shadow-[0_0_14px_rgba(16,185,129,0.9)] z-20"
+                  />
 
-                <img
-                  src={verification.qrDataUrl}
-                  alt={`QR Code verification for batch ${activeBatch.id}`}
-                  className="w-52 h-52 object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-56 h-56 flex items-center justify-center text-xs text-slate-400">
-                No verification generated
-              </div>
-            )}
+                  {/* Precision Scanner Framing Marks with Emerald Glow */}
+                  <div className="absolute top-1.5 left-1.5 w-5 h-5 border-t-2 border-l-2 border-emerald-600 rounded-tl-sm pointer-events-none z-10 transition-colors group-hover/qr:border-emerald-400"></div>
+                  <div className="absolute top-1.5 right-1.5 w-5 h-5 border-t-2 border-r-2 border-emerald-600 rounded-tr-sm pointer-events-none z-10 transition-colors group-hover/qr:border-emerald-400"></div>
+                  <div className="absolute bottom-1.5 left-1.5 w-5 h-5 border-b-2 border-l-2 border-emerald-600 rounded-bl-sm pointer-events-none z-10 transition-colors group-hover/qr:border-emerald-400"></div>
+                  <div className="absolute bottom-1.5 right-1.5 w-5 h-5 border-b-2 border-r-2 border-emerald-600 rounded-br-sm pointer-events-none z-10 transition-colors group-hover/qr:border-emerald-400"></div>
+
+                  <img
+                    src={verification.qrDataUrl}
+                    alt={`Cryptographic QR Code verification for batch ${activeBatch.id}`}
+                    className="w-52 h-52 object-contain relative z-0"
+                  />
+                </motion.div>
+              ) : (
+                <div className="w-56 h-56 flex items-center justify-center text-xs text-slate-400">
+                  No verification generated
+                </div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="mt-4 text-center space-y-1">
