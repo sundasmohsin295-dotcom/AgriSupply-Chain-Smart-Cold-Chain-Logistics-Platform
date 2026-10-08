@@ -75,7 +75,7 @@ export const PDFReceiptVerificationQR: React.FC<PDFReceiptVerificationQRProps> =
     return () => {
       isMounted = false;
     };
-  }, [activeBatch]);
+  }, [activeBatch?.id, activeBatch?.blockchainSealHash]);
 
   const handleCopyHash = () => {
     if (!verification) return;
@@ -198,16 +198,11 @@ export const PDFReceiptVerificationQR: React.FC<PDFReceiptVerificationQRProps> =
                 </motion.div>
               ) : verification ? (
                 <motion.div
-                  key={verification.sha256Hex}
-                  initial={{ opacity: 0, scale: 0.86, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, scale: 0.92, filter: 'blur(2px)' }}
-                  transition={{ 
-                    type: 'spring',
-                    damping: 22,
-                    stiffness: 240,
-                    mass: 0.8
-                  }}
+                  key={activeBatch?.id || 'active-qr'}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                   className="p-3.5 bg-white rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 relative overflow-hidden group/qr"
                 >
                   {/* High-Tech Laser Holographic Scan Line on Appearance */}

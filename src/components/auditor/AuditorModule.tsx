@@ -20,6 +20,7 @@ import {
   Database,
   FileSpreadsheet
 } from 'lucide-react';
+import { ComplianceVault } from './ComplianceVault';
 
 interface AuditorModuleProps {
   batches: ProduceBatch[];
@@ -55,6 +56,21 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
     }
   };
 
+  const [isClearanceUnlocked, setIsClearanceUnlocked] = useState<boolean>(false);
+  const [clearancePin, setClearancePin] = useState<string>('');
+  const [showPinInput, setShowPinInput] = useState<boolean>(false);
+
+  const handleToggleClearance = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (clearancePin === '9942' || clearancePin.toLowerCase() === 'auditor') {
+      setIsClearanceUnlocked(true);
+      setShowPinInput(false);
+      setClearancePin('');
+    } else {
+      alert('Invalid Auditor Clearance PIN. Demo PIN: 9942');
+    }
+  };
+
   return (
     <div className="space-y-6">
 
@@ -65,7 +81,16 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
             <ShieldCheck className="w-6 h-6 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Compliance, Blockchain Ledger & Certificate Generator</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Compliance, Blockchain Ledger & Certificate Generator</h1>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
+                isClearanceUnlocked
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : 'bg-amber-100 text-amber-900 border border-amber-300'
+              }`}>
+                {isClearanceUnlocked ? '● AUDITOR CLEARANCE ACTIVE' : '🔒 CONFIDENTIAL DATA MASKED'}
+              </span>
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Cryptographic SHA-256 batch integrity seals, USDA-AMS certification, and client-side PDF/CSV exports
             </p>
@@ -73,6 +98,24 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {!isClearanceUnlocked ? (
+            <button
+              onClick={() => setShowPinInput(!showPinInput)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition shadow-xs active:scale-95"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Unlock Confidential Data</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsClearanceUnlocked(false)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition"
+            >
+              <Lock className="w-4 h-4 text-emerald-600" />
+              <span>Lock Clearance</span>
+            </button>
+          )}
+
           <button
             onClick={() => exportBatchesWithTelemetryAndBreachesCSV(batches)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-xs"
@@ -90,6 +133,40 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
           </button>
         </div>
       </div>
+
+      {/* Inline PIN Prompt Modal */}
+      {showPinInput && (
+        <form onSubmit={handleToggleClearance} className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+            <span className="font-bold text-amber-900 dark:text-amber-200">
+              Enter Auditor Clearance PIN (Demo PIN: 9942) to reveal confidential grower contacts & pricing margins:
+            </span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              type="password"
+              placeholder="PIN 9942"
+              value={clearancePin}
+              onChange={(e) => setClearancePin(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-amber-400 bg-white dark:bg-slate-900 text-xs font-mono font-bold focus:outline-none w-28"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-500 transition"
+            >
+              Verify
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPinInput(false)}
+              className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-700 text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* Verification Tool & Quick Hash Search */}
       <div className="bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
@@ -165,6 +242,9 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
         )}
       </div>
 
+      {/* Compliance Vault: Cryptographic Integrity & Offline Tamper Oracle */}
+      <ComplianceVault batches={batches} />
+
       {/* Verified Batches Ledger & PDF Generator Table */}
       <div className="bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0c131c] flex items-center justify-between">
@@ -184,7 +264,8 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
                 <th className="p-3">Batch ID</th>
                 <th className="p-3">Commodity & Variety</th>
                 <th className="p-3">Blockchain Verification Hash</th>
-                <th className="p-3">Origin Farm</th>
+                <th className="p-3">Origin Farm & Operator</th>
+                <th className="p-3">Commercial Lot Value</th>
                 <th className="p-3">Core Temp</th>
                 <th className="p-3">Compliance Certificate</th>
               </tr>
@@ -198,11 +279,30 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
                     <span className="text-[10px] text-slate-400 block">{batch.quantityKg.toLocaleString()} kg</span>
                   </td>
                   <td className="p-3 font-mono text-[11px] text-emerald-800 dark:text-amber-300">
-                    <span className="truncate max-w-[200px] block" title={batch.blockchainSealHash}>
+                    <span className="truncate max-w-[180px] block font-semibold" title={batch.blockchainSealHash}>
                       {batch.blockchainSealHash}
                     </span>
                   </td>
-                  <td className="p-3 text-slate-700 dark:text-slate-300">{batch.farmerName}</td>
+                  <td className="p-3">
+                    {isClearanceUnlocked ? (
+                      <span className="text-slate-800 dark:text-slate-200 font-medium">{batch.farmerName}</span>
+                    ) : (
+                      <span className="font-mono text-slate-400 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                        •••••••• [RESTRICTED]
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3 font-mono text-xs">
+                    {isClearanceUnlocked ? (
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                        ${Math.round(batch.quantityKg * 2.85).toLocaleString()} USD
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                        •••••••• [LOCKED]
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">
                     {batch.currentTemp.toFixed(1)}°C
                   </td>

@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with cold-chain role and metadata",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID matching document ID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Registered email address"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name or organization contact"
+        },
+        "role": {
+          "type": "string",
+          "description": "System access role",
+          "enum": [
+            "FARMER",
+            "TRANSPORTER",
+            "WAREHOUSE_ADMIN",
+            "RETAILER",
+            "COMPLIANCE_AUDITOR"
+          ]
+        },
+        "organization": {
+          "type": "string",
+          "description": "Cooperative or company affiliation"
+        },
+        "location": {
+          "type": "string",
+          "description": "Primary operating region"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account creation timestamp"
+        }
+      },
+      "required": ["uid", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User account documents indexed by Firebase Auth UID"
+    }
+  }
+}

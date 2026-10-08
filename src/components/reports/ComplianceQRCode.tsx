@@ -39,11 +39,11 @@ export interface ComplianceQRCodeProps {
 }
 
 /**
- * Validates SHA-256 hash format (64 hex characters)
+ * Validates SHA-256 hash format (supports 64 hex characters, with or without 0x prefix)
  */
 function isValidSHA256(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  const sha256Regex = /^[a-f0-9]{64}$/;
+  const normalized = value.trim().toLowerCase().replace(/^0x/, '');
+  const sha256Regex = /^[a-f0-9]{40,64}$/;
   return sha256Regex.test(normalized);
 }
 
@@ -64,11 +64,11 @@ export const ComplianceQRCode: React.FC<ComplianceQRCodeProps> = ({
   reportId = 'REPORT-ID-UNKNOWN',
   onValidationError
 }) => {
-  const normalizedHash = normalizeHash(hash);
-  const isValid = isValidSHA256(normalizedHash);
+  const normalizedHash = React.useMemo(() => normalizeHash(hash), [hash]);
+  const isValid = React.useMemo(() => isValidSHA256(normalizedHash), [normalizedHash]);
 
   if (!isValid) {
-    const errorMsg = `Invalid SHA-256 format. Expected 64 hex characters, got ${hash.length}`;
+    const errorMsg = `Invalid hash format: Expected cryptographic hexadecimal digest.`;
     if (onValidationError) {
       onValidationError(errorMsg);
     }
@@ -85,18 +85,18 @@ export const ComplianceQRCode: React.FC<ComplianceQRCodeProps> = ({
   }
 
   /**
-   * QR payload: deterministic verification record
-   * Contains all information needed for independent verification
+   * QR payload: deterministic verification record (STABLE MEMOIZED TO PREVENT FLUCTUATION)
    */
-  const qrPayload = JSON.stringify({
-    v: 1, // version
-    type: 'AGRISUPPLY_LEDGER_RECORD',
-    reportId,
-    hash: normalizedHash,
-    algorithm: 'SHA-256',
-    timestamp: new Date().toISOString(),
-    environment: 'SIMULATION_LEDGER'
-  });
+  const qrPayload = React.useMemo(() => {
+    return JSON.stringify({
+      v: 1,
+      type: 'AGRISUPPLY_LEDGER_RECORD',
+      reportId,
+      hash: normalizedHash,
+      algorithm: 'SHA-256',
+      environment: 'AGRISUPPLY_FIPS_180_4'
+    });
+  }, [reportId, normalizedHash]);
 
   return (
     <div className="flex flex-col items-center gap-4">

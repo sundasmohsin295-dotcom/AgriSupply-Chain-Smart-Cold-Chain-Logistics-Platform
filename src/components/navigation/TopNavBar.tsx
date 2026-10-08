@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { UserRole, LanguageCode } from '../../types';
 import { ROLE_DEFINITIONS } from '../../lib/jwtAuth';
-import { LANGUAGE_OPTIONS, TRANSLATIONS, isRTL } from '../../lib/translations';
+import { TRANSLATIONS, LANGUAGE_OPTIONS } from '../../lib/translations';
 import { 
-  Wifi, 
-  WifiOff, 
-  Users, 
-  Globe, 
   Leaf, 
-  ChevronDown,
-  Flame,
-  Cpu
+  Cpu, 
+  Globe, 
+  ChevronDown, 
+  Users, 
+  Check, 
+  Radio, 
+  Flame, 
+  Activity,
+  Layers
 } from 'lucide-react';
 
 interface TopNavBarProps {
@@ -18,6 +20,9 @@ interface TopNavBarProps {
   onSelectTab: (tab: string) => void;
   currentRole: UserRole;
   onOpenRoleModal: () => void;
+  onOpenAuthModal?: () => void;
+  isFirebaseAuthenticated?: boolean;
+  userEmail?: string;
   onOpenJWTModal?: () => void;
   onOpenJudgePanel?: () => void;
   isOnline: boolean;
@@ -34,6 +39,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onSelectTab,
   currentRole,
   onOpenRoleModal,
+  onOpenAuthModal,
+  isFirebaseAuthenticated = false,
+  userEmail,
   onOpenJudgePanel,
   isOnline,
   onToggleNetwork,
@@ -55,7 +63,8 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
     { id: 'warehouse', label: t.navInventory },
     { id: 'pipeline', label: t.navPipeline },
     { id: 'reports', label: t.navReports },
-    { id: 'auditor', label: 'Audit' }
+    { id: 'auditor', label: 'Audit' },
+    { id: 'faq', label: 'FAQ & Trust' }
   ];
 
   return (
@@ -109,76 +118,76 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <div className="relative">
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-200 transition-colors"
-              title="Select Language"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors"
+              title="Select Interface Language"
             >
-              <span>{currentLangObj.flag}</span>
-              <span className="hidden sm:inline font-mono text-xs">{currentLangObj.code.toUpperCase()}</span>
+              <Globe className="w-3.5 h-3.5" />
+              <span>{currentLangObj.nativeName}</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
             {isLangOpen && (
-              <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
-                {LANGUAGE_OPTIONS.map((opt) => (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50">
+                {LANGUAGE_OPTIONS.map((lang) => (
                   <button
-                    key={opt.code}
+                    key={lang.code}
                     onClick={() => {
-                      onSelectLanguage(opt.code);
+                      onSelectLanguage(lang.code);
                       setIsLangOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition-colors ${
-                      language === opt.code
-                        ? 'bg-emerald-50 text-emerald-800 font-bold'
-                        : 'text-slate-700 hover:bg-slate-100'
+                    className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition-colors ${
+                      language === lang.code
+                        ? 'bg-emerald-50 text-emerald-900 font-bold'
+                        : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span>{opt.flag}</span>
-                      <span>{opt.name}</span>
-                    </span>
+                    <div>
+                      <span>{lang.nativeName}</span>
+                      <span className="text-[10px] text-slate-400 block font-normal">{lang.name}</span>
+                    </div>
+                    {language === lang.code && <Check className="w-3.5 h-3.5 text-emerald-600" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Thermal Breach Indicator */}
-          {isThermalBreachActive && (
+          {/* Quick Thermal Breach Simulator Trigger */}
+          {onToggleThermalBreach && (
             <button
               onClick={onToggleThermalBreach}
-              title="Thermal breach active"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-100 text-rose-700 border border-rose-300 hover:bg-rose-200 transition-colors"
+              title={isThermalBreachActive ? 'Resolve Thermal Breach' : 'Simulate N-5 Highway Reefer Thermal Breach'}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                isThermalBreachActive
+                  ? 'bg-red-600 hover:bg-red-700 text-white border-red-500 shadow-sm'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
             >
-              <Flame className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">BREACH</span>
+              <Flame className={`w-3.5 h-3.5 ${isThermalBreachActive ? 'animate-pulse text-white' : 'text-slate-500'}`} />
+              <span className="hidden lg:inline">
+                {isThermalBreachActive ? 'Breach Active' : 'Simulate Breach'}
+              </span>
             </button>
           )}
 
-          {/* Network Status */}
+          {/* Offline / Online Network Toggle */}
           <button
             onClick={onToggleNetwork}
-            title={isOnline ? 'Online' : 'Offline Mode'}
+            title={isOnline ? 'Switch to Offline Mode (IndexedDB Queue)' : 'Reconnect Network (Sync Ledger)'}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               isOnline
-                ? 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-                : 'bg-amber-100 border-amber-300 text-amber-700 font-bold'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                : 'bg-amber-100 text-amber-900 border-amber-400 hover:bg-amber-200'
             }`}
           >
-            {isOnline ? (
-              <>
-                <Wifi className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden sm:inline">Online</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3.5 h-3.5 text-amber-600" />
-                <span>Offline</span>
-                {queuedCount > 0 && (
-                  <span className="bg-amber-600 text-white text-[10px] px-1.5 rounded-full font-mono font-bold">
-                    {queuedCount}
-                  </span>
-                )}
-              </>
+            <Radio className={`w-3.5 h-3.5 ${isOnline ? 'text-emerald-600' : 'text-amber-700'}`} />
+            <span className="hidden sm:inline font-mono">
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+            {queuedCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-900 text-[10px] font-bold flex items-center justify-center font-mono">
+                {queuedCount}
+              </span>
             )}
           </button>
 
@@ -194,14 +203,21 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             </button>
           )}
 
-          {/* Role Indicator */}
+          {/* Role & Firebase Auth Indicator */}
           <button
-            onClick={onOpenRoleModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+            onClick={onOpenAuthModal}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors min-h-[44px] ${
+              isFirebaseAuthenticated
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
+            }`}
+            title={isFirebaseAuthenticated ? `Authenticated via Firebase: ${userEmail}` : 'Open Production Operator Sign-In'}
           >
             <Users className="w-3.5 h-3.5" />
-            <span className="hidden md:inline text-[11px]">{roleInfo.title.split(' ')[0]}:</span>
-            <span>{roleInfo.name.split(' ')[0]}</span>
+            <span className="hidden md:inline text-[11px]">
+              {isFirebaseAuthenticated ? 'Verified:' : 'Operator'}
+            </span>
+            <span>{isFirebaseAuthenticated && userEmail ? userEmail.split('@')[0] : 'Sign In'}</span>
           </button>
 
         </div>
@@ -214,10 +230,10 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
           <button
             key={item.id}
             onClick={() => onSelectTab(item.id)}
-            className={`px-3 py-1 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
+            className={`px-3 py-1 text-xs font-semibold rounded-md whitespace-nowrap transition-colors ${
               currentTab === item.id
                 ? 'bg-emerald-600 text-white'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                : 'text-slate-600 hover:bg-slate-200'
             }`}
           >
             {item.label}

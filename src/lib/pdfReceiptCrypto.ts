@@ -256,6 +256,8 @@ function buildPDFDocument(
   return doc;
 }
 
+const pdfReceiptCache = new Map<string, PDFReceiptVerification>();
+
 /**
  * Generates the PDF receipt, calculates its cryptographic SHA-256 checksum,
  * embeds the QR code, and provides a full verification suite.
@@ -265,8 +267,15 @@ export async function generateCompliancePDFReceipt(
   reefer?: ReeferVehicle,
   auditLog?: ComplianceAuditLog
 ): Promise<PDFReceiptVerification> {
+  const cacheKey = `${batch.id}_${batch.blockchainSealHash}`;
+  const cached = pdfReceiptCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const filename = `Compliance-Receipt-${batch.id.replace('#', '')}.pdf`;
-  const generatedAt = new Date().toISOString();
+  // Deterministic stable timestamp derived from batch harvest/stage date to prevent QR matrix fluctuation
+  const generatedAt = batch.stageEnteredAt || batch.harvestDate || '2026-10-01T08:00:00Z';
 
   // Step 1: Render intermediate PDF to extract structural content bytes
   const preliminaryDoc = buildPDFDocument(batch, reefer, auditLog);
@@ -313,7 +322,7 @@ export async function generateCompliancePDFReceipt(
     finalizedDoc.save(filename);
   };
 
-  return {
+  const result: PDFReceiptVerification = {
     batchId: batch.id,
     filename,
     sha256Hex: finalSha256Hex,
@@ -325,6 +334,9 @@ export async function generateCompliancePDFReceipt(
     pdfBlob,
     downloadPdf
   };
+
+  pdfReceiptCache.set(cacheKey, result);
+  return result;
 }
 
 /**

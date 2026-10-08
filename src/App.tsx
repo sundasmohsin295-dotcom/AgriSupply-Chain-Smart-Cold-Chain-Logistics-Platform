@@ -19,13 +19,19 @@ import { TopNavBar } from './components/navigation/TopNavBar';
 import { RoleSwitcherModal } from './components/auth/RoleSwitcherModal';
 import { OfflineSyncIndicator } from './components/offline/OfflineSyncIndicator';
 import { CommandOverview } from './components/dashboard/CommandOverview';
-import { FarmerModule } from './components/farmer/FarmerModule';
-import { TransporterModule } from './components/transporter/TransporterModule';
-import { WarehouseModule } from './components/warehouse/WarehouseModule';
-import { KanbanPipeline } from './components/pipeline/KanbanPipeline';
-import { ReportsModule } from './components/reports/ReportsModule';
-import { AuditorModule } from './components/auditor/AuditorModule';
-import { JudgeDefenseModal } from './components/demo/JudgeDefenseModal';
+import { subscribeToAuthState, FirestoreUserProfile } from './lib/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
+
+// Route-level code splitting with React.lazy
+const FarmerModule = React.lazy(() => import('./components/farmer/FarmerModule').then((m) => ({ default: m.FarmerModule })));
+const TransporterModule = React.lazy(() => import('./components/transporter/TransporterModule').then((m) => ({ default: m.TransporterModule })));
+const WarehouseModule = React.lazy(() => import('./components/warehouse/WarehouseModule').then((m) => ({ default: m.WarehouseModule })));
+const KanbanPipeline = React.lazy(() => import('./components/pipeline/KanbanPipeline').then((m) => ({ default: m.KanbanPipeline })));
+const ReportsModule = React.lazy(() => import('./components/reports/ReportsModule').then((m) => ({ default: m.ReportsModule })));
+const AuditorModule = React.lazy(() => import('./components/auditor/AuditorModule').then((m) => ({ default: m.AuditorModule })));
+const FAQAndTrustModule = React.lazy(() => import('./components/trust/FAQAndTrustModule').then((m) => ({ default: m.FAQAndTrustModule })));
+const JudgeDefenseModal = React.lazy(() => import('./components/demo/JudgeDefenseModal').then((m) => ({ default: m.JudgeDefenseModal })));
+const FirebaseAuthModal = React.lazy(() => import('./components/auth/FirebaseAuthModal').then((m) => ({ default: m.FirebaseAuthModal })));
 import { 
   Flame, 
   Power, 
@@ -41,8 +47,10 @@ export default function App() {
   // Session & RBAC State
   const [session, setSession] = useState(() => getStoredSession());
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   // Network & Offline-First State
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -52,6 +60,24 @@ export default function App() {
 
   // Central Inventory / Batches State
   const [batches, setBatches] = useState<ProduceBatch[]>(INITIAL_BATCHES);
+
+  // Real Firebase Session Persistence Subscription
+  useEffect(() => {
+    const unsub = subscribeToAuthState((user, profile) => {
+      if (user && user.emailVerified && profile) {
+        setFirebaseUser(user);
+        const newSession = createSessionForRole(profile.role);
+        newSession.name = profile.name || user.displayName || 'Operator';
+        newSession.email = user.email || profile.email;
+        newSession.organization = profile.organization || 'AgriSupply Network';
+        newSession.location = profile.location || 'Regional Cold Hub';
+        setSession(newSession);
+      } else if (!user) {
+        setFirebaseUser(null);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // Live IoT Telemetry Stream & Thermal Breach State
   const [latestReading, setLatestReading] = useState<TelemetryReading | null>(() => telemetryService.getLatestReading());
@@ -169,6 +195,39 @@ export default function App() {
     else if (newRole === 'COMPLIANCE_AUDITOR') setActiveTab('auditor');
   };
 
+  // Handle Firebase Authentication success
+  const handleAuthSuccess = (
+    user: FirebaseUser | null, 
+    profile: FirestoreUserProfile | null, 
+    isQuickDemo: boolean = false, 
+    demoRole?: UserRole
+  ) => {
+    if (isQuickDemo && demoRole) {
+      handleSelectRole(demoRole);
+      showToast(`Switched persona to ${demoRole}`);
+      return;
+    }
+
+    if (user && profile) {
+      setFirebaseUser(user);
+      const newSession = createSessionForRole(profile.role);
+      newSession.name = profile.name || user.displayName || 'Operator';
+      newSession.email = user.email || profile.email;
+      newSession.organization = profile.organization;
+      newSession.location = profile.location;
+      setSession(newSession);
+
+      // Route based on stored Firestore role
+      if (profile.role === 'FARMER') setActiveTab('farmer');
+      else if (profile.role === 'TRANSPORTER') setActiveTab('transporter');
+      else if (profile.role === 'WAREHOUSE_ADMIN') setActiveTab('warehouse');
+      else if (profile.role === 'RETAILER') setActiveTab('pipeline');
+      else if (profile.role === 'COMPLIANCE_AUDITOR') setActiveTab('auditor');
+
+      showToast(`Authenticated via Firebase! Welcome ${newSession.name} (${profile.role})`);
+    }
+  };
+
   // Handle Emergency Thermal Breach Toggle
   const handleToggleThermalBreach = () => {
     const nextBreach = telemetryService.toggleThermalBreach('#ASG-001');
@@ -262,6 +321,9 @@ export default function App() {
         onSelectTab={setActiveTab}
         currentRole={session.role}
         onOpenRoleModal={() => setIsRoleModalOpen(true)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        isFirebaseAuthenticated={!!firebaseUser}
+        userEmail={firebaseUser?.email || undefined}
         onOpenJudgePanel={() => setIsJudgeModalOpen(true)}
         isOnline={isOnline}
         onToggleNetwork={handleToggleNetwork}
@@ -337,50 +399,59 @@ export default function App() {
       />
 
       {/* Main Content */}
+      {/* Main Content with Route-Level Code Splitting Suspense */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {activeTab === 'overview' && (
-          <CommandOverview
-            onNavigateTab={setActiveTab}
-            batches={batches}
-            currentRole={session.role}
-            isOnline={isOnline}
-            onToggleNetwork={handleToggleNetwork}
-            language={language}
-            isThermalBreachActive={isThermalBreachActive}
-            onToggleThermalBreach={handleToggleThermalBreach}
-            onEngageAuxiliaryCooling={handleEngageAuxiliaryCooling}
-            latestReading={latestReading}
-          />
-        )}
+        <React.Suspense fallback={
+          <div className="p-12 text-center text-xs font-mono text-slate-400 bg-white border border-slate-200 rounded-3xl animate-pulse">
+            Loading Workspace Module...
+          </div>
+        }>
+          {activeTab === 'overview' && (
+            <CommandOverview
+              onNavigateTab={setActiveTab}
+              batches={batches}
+              currentRole={session.role}
+              isOnline={isOnline}
+              onToggleNetwork={handleToggleNetwork}
+              language={language}
+              isThermalBreachActive={isThermalBreachActive}
+              onToggleThermalBreach={handleToggleThermalBreach}
+              onEngageAuxiliaryCooling={handleEngageAuxiliaryCooling}
+              latestReading={latestReading}
+            />
+          )}
 
-        {activeTab === 'farmer' && (
-          <FarmerModule
-            batches={batches}
-            onAddBatch={handleAddBatch}
-            isOnline={isOnline}
-          />
-        )}
+          {activeTab === 'farmer' && (
+            <FarmerModule
+              batches={batches}
+              onAddBatch={handleAddBatch}
+              isOnline={isOnline}
+            />
+          )}
 
-        {activeTab === 'transporter' && <TransporterModule />}
+          {activeTab === 'transporter' && <TransporterModule />}
 
-        {activeTab === 'warehouse' && (
-          <WarehouseModule
-            batches={batches}
-            onUpdateBatchStatus={handleUpdateBatchStatus}
-            onUpdateBatchStage={handleAdvanceStage}
-          />
-        )}
+          {activeTab === 'warehouse' && (
+            <WarehouseModule
+              batches={batches}
+              onUpdateBatchStatus={handleUpdateBatchStatus}
+              onUpdateBatchStage={handleAdvanceStage}
+            />
+          )}
 
-        {activeTab === 'pipeline' && (
-          <KanbanPipeline
-            batches={batches}
-            onAdvanceStage={handleAdvanceStage}
-          />
-        )}
+          {activeTab === 'pipeline' && (
+            <KanbanPipeline
+              batches={batches}
+              onAdvanceStage={handleAdvanceStage}
+            />
+          )}
 
-        {activeTab === 'reports' && <ReportsModule batches={batches} />}
+          {activeTab === 'reports' && <ReportsModule batches={batches} />}
 
-        {activeTab === 'auditor' && <AuditorModule batches={batches} />}
+          {activeTab === 'auditor' && <AuditorModule batches={batches} />}
+
+          {activeTab === 'faq' && <FAQAndTrustModule />}
+        </React.Suspense>
       </main>
 
       {/* Footer */}
@@ -415,6 +486,16 @@ export default function App() {
         onSelectRole={handleSelectRole}
         currentToken={session.token}
       />
+
+      {/* Real Firebase Authentication & Verification Gate Modal */}
+      <React.Suspense fallback={null}>
+        <FirebaseAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthSuccess={handleAuthSuccess}
+          currentRole={session.role}
+        />
+      </React.Suspense>
 
       {/* Judge Defense Modal */}
       <JudgeDefenseModal

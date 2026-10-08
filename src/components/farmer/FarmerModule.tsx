@@ -19,7 +19,9 @@ import {
   AlertCircle,
   X,
   FileCheck,
-  Sparkles
+  Sparkles,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 
 interface FarmerModuleProps {
@@ -56,6 +58,34 @@ export const FarmerModule: React.FC<FarmerModuleProps> = ({
   const [quantityKg, setQuantityKg] = useState<number>(2500);
   const [farmLocation, setFarmLocation] = useState<string>('Multan Sector 4, Citrus & Mango Farm');
   const [farmerName, setFarmerName] = useState<string>('Tariq Mehmood');
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [gpsNotice, setGpsNotice] = useState<string | null>(null);
+
+  const handleUseRealGps = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsNotice('Browser Geolocation is unavailable on this device. Manual address entry retained.');
+      return;
+    }
+
+    setIsLocating(true);
+    setGpsNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        setFarmLocation(`GPS Fix: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E (±${acc}m Satellite Accuracy)`);
+        setGpsNotice(`Real device GPS coordinates captured (Accuracy: ±${acc}m)`);
+      },
+      (err) => {
+        setIsLocating(false);
+        setGpsNotice(`GPS notice: ${err.message}. Manual address entry is available.`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
   
   // Step 2 Parameters
   const [freshness, setFreshness] = useState<string>('Grade-A Optimal');
@@ -436,15 +466,33 @@ export const FarmerModule: React.FC<FarmerModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Origin Farm Location *
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Origin Farm Location *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleUseRealGps}
+                        disabled={isLocating}
+                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 active:scale-95 transition disabled:opacity-50"
+                        title="Acquire real satellite geolocation from your physical device"
+                      >
+                        <Navigation className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                        <span>{isLocating ? 'Acquiring GPS...' : 'Use Real GPS'}</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={farmLocation}
                       onChange={(e) => setFarmLocation(e.target.value)}
+                      placeholder="e.g. Multan Sector 4, Citrus Orchard"
                       className="w-full bg-slate-50 dark:bg-[#0a1017] border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                     />
+                    {gpsNotice && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 block font-mono">
+                        ✓ {gpsNotice}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -24,6 +24,9 @@ import {
   Layers,
   ArrowRight
 } from 'lucide-react';
+import { InteractiveLeafletCorridorMap } from './InteractiveLeafletCorridorMap';
+import { GeofenceManager } from '../geofence/GeofenceManager';
+import { GeofenceManagerModal } from '../geofence/GeofenceManagerModal';
 
 interface TransporterModuleProps {
   onAcknowledgeBreach?: () => void;
@@ -37,6 +40,7 @@ export const TransporterModule: React.FC<TransporterModuleProps> = () => {
   const [weatherConditions, setWeatherConditions] = useState<RouteWeatherCondition[]>([]);
   const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(true);
   const [lastGeofenceState, setLastGeofenceState] = useState<'OUTSIDE' | 'APPROACHING' | 'ENTERED'>('OUTSIDE');
+  const [isGeofenceManagerOpen, setIsGeofenceManagerOpen] = useState<boolean>(false);
 
   const selectedReefer = reefers.find((r) => r.id === selectedReeferId) || reefers[0]!;
 
@@ -144,8 +148,17 @@ export const TransporterModule: React.FC<TransporterModuleProps> = () => {
           </div>
         </div>
 
-        {/* GPS Mode Switcher */}
-        <div className="flex items-center gap-2">
+        {/* Header Action Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsGeofenceManagerOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white transition shadow-xs active:scale-95"
+            title="Configure virtual geofence perimeter zones"
+          >
+            <Layers className="w-4 h-4" />
+            <span>Geofence Manager</span>
+          </button>
+
           <button
             onClick={handleToggleGpsMode}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition border border-slate-200 dark:border-slate-700 active:scale-95"
@@ -213,13 +226,15 @@ export const TransporterModule: React.FC<TransporterModuleProps> = () => {
       {/* Transit Map & Telematics Details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left 2 Cols: Vector Corridor Map */}
+        {/* Left 2 Cols: Real Interactive Leaflet Corridor Map */}
         <div className="lg:col-span-2 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Transit Corridor Geofence Matrix</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Live Geographic Telematics & Dynamic Geofence Engine
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                Multan (Origin) $\to$ Okara Cold Depository $\to$ Lahore Terminal (Destination)
+                Multan Farm (Origin) $\to$ Okara Cold Depository $\to$ Lahore Terminal (Destination)
               </p>
             </div>
 
@@ -229,50 +244,18 @@ export const TransporterModule: React.FC<TransporterModuleProps> = () => {
                   ? 'bg-emerald-600 text-white animate-pulse'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
               }`}>
-                {geofenceEval.insideGeofence ? '● INSIDE GEOFENCE' : '● EN ROUTE'}
+                {geofenceEval.insideGeofence ? '● INSIDE GEOFENCE' : '● EN ROUTE (N-5)'}
               </span>
             </div>
           </div>
 
-          {/* Clean Vector SVG Transit Corridor Visualizer */}
-          <div className="h-64 w-full bg-slate-50 dark:bg-[#090e15] border border-slate-200 dark:border-slate-800 rounded-xl p-4 relative overflow-hidden flex items-center justify-center">
-            <svg viewBox="0 0 600 240" className="w-full h-full">
-              {/* Route Line */}
-              <line x1="80" y1="170" x2="220" y2="130" stroke="#38bdf8" strokeWidth="3" strokeDasharray="6,4" />
-              <line x1="220" y1="130" x2="380" y2="90" stroke="#38bdf8" strokeWidth="3" strokeDasharray="6,4" />
-              <line x1="380" y1="90" x2="520" y2="50" stroke="#38bdf8" strokeWidth="3" />
-
-              {/* Geofence Radii Rings */}
-              <circle cx="80" cy="170" r="34" fill="#10b981" fillOpacity="0.1" stroke="#10b981" strokeWidth="1.5" />
-              <circle cx="380" cy="90" r="30" fill="#f59e0b" fillOpacity="0.1" stroke="#f59e0b" strokeWidth="1.5" />
-              <circle cx="520" cy="50" r="38" fill="#10b981" fillOpacity="0.15" stroke="#10b981" strokeWidth="2" />
-
-              {/* Waypoint Nodes */}
-              <circle cx="80" cy="170" r="6" fill="#10b981" />
-              <text x="80" y="215" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">Multan Farm</text>
-
-              <circle cx="220" cy="130" r="5" fill="#38bdf8" />
-              <text x="220" y="155" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">Sahiwal Checkpoint</text>
-
-              <circle cx="380" cy="90" r="5" fill="#f59e0b" />
-              <text x="380" y="125" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">Okara Depot</text>
-
-              <circle cx="520" cy="50" r="7" fill="#10b981" />
-              <text x="520" y="30" textAnchor="middle" fill="#10b981" fontSize="11" fontWeight="bold" fontFamily="monospace">Lahore Terminal</text>
-
-              {/* Animated Reefer Position */}
-              <g transform="translate(340, 102)">
-                <circle cx="0" cy="0" r="10" fill="#38bdf8" fillOpacity="0.4" className="animate-ping" />
-                <circle cx="0" cy="0" r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
-                <text x="0" y="-12" textAnchor="middle" fill="#0284c7" fontSize="10" fontWeight="bold" fontFamily="monospace">TRK-024</text>
-              </g>
-            </svg>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
-            <span>Current Fix: {currentCoord.lat.toFixed(4)}° N, {currentCoord.lng.toFixed(4)}° E</span>
-            <span>Speed: 68 km/h · Heading: 42° NE</span>
-          </div>
+          {/* Interactive Leaflet Map with OpenStreetMap tiles, live truck marker & circular geofences */}
+          <InteractiveLeafletCorridorMap
+            currentCoord={currentCoord}
+            reeferId={selectedReefer.id}
+            temperatureC={selectedReefer.reeferTemp}
+            humidityPercent={88.5}
+          />
         </div>
 
         {/* Right Col: Reefer Diagnostics & Boundary Status */}
@@ -318,6 +301,15 @@ export const TransporterModule: React.FC<TransporterModuleProps> = () => {
         </div>
 
       </div>
+
+      {/* Dedicated Geofence Manager Dashboard Component */}
+      <GeofenceManager />
+
+      {/* Virtual Geofence Manager Modal */}
+      <GeofenceManagerModal
+        isOpen={isGeofenceManagerOpen}
+        onClose={() => setIsGeofenceManagerOpen(false)}
+      />
 
     </div>
   );

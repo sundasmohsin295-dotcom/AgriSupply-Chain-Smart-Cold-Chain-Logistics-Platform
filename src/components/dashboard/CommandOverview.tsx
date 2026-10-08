@@ -27,6 +27,11 @@ import { exportBatchesWithTelemetryAndBreachesCSV } from '../../lib/reportGenera
 import { AnimatedCounter } from '../ui/AnimatedCounter';
 import { InteractiveColdChainHero } from './InteractiveColdChainHero';
 import { DashboardWidget } from './DashboardWidget';
+import { GeofenceManager } from '../geofence/GeofenceManager';
+
+const HistoricalTemperatureChart = React.lazy(() => 
+  import('../analytics/HistoricalTemperatureChart').then((m) => ({ default: m.HistoricalTemperatureChart }))
+);
 
 interface CommandOverviewProps {
   onNavigateTab: (tab: string) => void;
@@ -248,7 +253,22 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
         </div>
       </motion.div>
 
-      {/* Grid: Supply Loss Rate Chart & Temperature Trend (Matching Reference Image) */}
+      {/* 24-Hour Real-Time Historical Temperature Fluctuation Chart (Recharts) */}
+      <motion.div variants={itemVariants}>
+        <React.Suspense fallback={
+          <div className="h-72 bg-white dark:bg-[#0f1722] border border-slate-200 dark:border-slate-800 rounded-3xl flex items-center justify-center text-xs font-mono text-slate-400 animate-pulse">
+            Loading Recharts 24-Hour Telemetry Engine...
+          </div>
+        }>
+          <HistoricalTemperatureChart
+            batches={batches}
+            latestReading={latestReading}
+            isThermalBreachActive={isThermalBreachActive}
+          />
+        </React.Suspense>
+      </motion.div>
+
+      {/* Grid: Supply Loss Rate Card & Temperature Trend (Matching Reference Image) */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Supply Loss Rate Card */}
@@ -461,6 +481,13 @@ export const CommandOverview: React.FC<CommandOverviewProps> = ({
         <IoTTelemetryDeck />
       </motion.div>
 
+      {/* Geofence Manager Dashboard Component */}
+      <motion.div variants={itemVariants}>
+        <GeofenceManager />
+      </motion.div>
+
     </motion.div>
   );
 };
+
+export { DashboardWidget } from './DashboardWidget';

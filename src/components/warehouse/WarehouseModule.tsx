@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ProduceBatch, ColdChainStatus, QualityGrade, ProduceCommodity } from '../../types';
 import { 
   exportInventoryToCSV, 
@@ -34,6 +34,24 @@ interface WarehouseModuleProps {
   onUpdateBatchStage: (batchId: string, stage: ProduceBatch['stage']) => void;
 }
 
+export function calculateFefoDaysRemaining(batch: ProduceBatch): number {
+  const shelfLifeMap: Record<string, number> = {
+    strawberry: 7,
+    mango: 14,
+    tomato: 12,
+    citrus: 28,
+    apple: 35,
+    grapes: 21,
+    banana: 10
+  };
+  const totalShelfLife = shelfLifeMap[batch.commodity.toLowerCase()] || 14;
+  const harvestTime = new Date(batch.harvestDate).getTime();
+  const now = Date.now();
+  const daysPassed = Math.max(0, Math.floor((now - harvestTime) / (1000 * 60 * 60 * 24)));
+  const penalty = batch.coldChainStatus === 'CRITICAL_BREACH' ? 4 : batch.coldChainStatus === 'WARNING' ? 1 : 0;
+  return Math.max(1, totalShelfLife - daysPassed - penalty);
+}
+
 type SortField = 'id' | 'commodity' | 'currentTemp' | 'quantityKg' | 'coldChainStatus' | 'harvestDate';
 type SortDirection = 'asc' | 'desc';
 
@@ -43,6 +61,7 @@ export const WarehouseModule: React.FC<WarehouseModuleProps> = ({
   onUpdateBatchStage
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [filterCommodity, setFilterCommodity] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [sortField, setSortField] = useState<SortField>('harvestDate');
@@ -50,6 +69,14 @@ export const WarehouseModule: React.FC<WarehouseModuleProps> = ({
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(6);
+
+  // Debounce global-search input (300ms) to preserve UI performance
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
   
   // Selected batch for detailed audit drawer
   const [inspectingBatch, setInspectingBatch] = useState<ProduceBatch | null>(null);
@@ -69,23 +96,24 @@ export const WarehouseModule: React.FC<WarehouseModuleProps> = ({
     }
   };
 
-  // Filter & Search Logic
+  // Filter & Search Logic (driven by debouncedSearchQuery)
   const filteredBatches = useMemo(() => {
     return batches.filter((b) => {
+      const q = debouncedSearchQuery.toLowerCase().trim();
       const matchesSearch =
-        searchQuery === '' ||
-        b.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.destinationHub.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.blockchainSealHash.toLowerCase().includes(searchQuery.toLowerCase());
+        q === '' ||
+        b.id.toLowerCase().includes(q) ||
+        b.variety.toLowerCase().includes(q) ||
+        b.farmerName.toLowerCase().includes(q) ||
+        b.destinationHub.toLowerCase().includes(q) ||
+        b.blockchainSealHash.toLowerCase().includes(q);
 
       const matchesCommodity = filterCommodity === 'ALL' || b.commodity === filterCommodity;
       const matchesStatus = filterStatus === 'ALL' || b.coldChainStatus === filterStatus;
 
       return matchesSearch && matchesCommodity && matchesStatus;
     });
-  }, [batches, searchQuery, filterCommodity, filterStatus]);
+  }, [batches, debouncedSearchQuery, filterCommodity, filterStatus]);
 
   // Sort Logic
   const sortedBatches = useMemo(() => {
@@ -397,6 +425,7 @@ export const WarehouseModule: React.FC<WarehouseModuleProps> = ({
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
+                <th className="p-3 font-semibold">FEFO Shelf-Life</th>
                 <th className="p-3 font-semibold">Telemetry Samples</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
@@ -481,6 +510,23 @@ export const WarehouseModule: React.FC<WarehouseModuleProps> = ({
                         >
                           {batch.coldChainStatus}
                         </span>
+                      </td>
+
+                      <td className="p-3 whitespace-nowrap font-mono">
+                        {(() => {
+                          const daysRemaining = calculateFefoDaysRemaining(batch);
+                          return (
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                              daysRemaining <= 3
+                                ? 'bg-red-100 text-red-800 border border-red-300'
+                                : daysRemaining <= 7
+                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {daysRemaining}d RSL ({daysRemaining <= 3 ? 'FEFO #1' : 'Normal'})
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       <td className="p-3 whitespace-nowrap font-mono text-slate-600 dark:text-slate-300">

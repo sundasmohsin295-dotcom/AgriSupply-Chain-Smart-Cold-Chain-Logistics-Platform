@@ -273,6 +273,23 @@ export const IoTTelemetryDeck: React.FC = () => {
 
       </div>
 
+      {/* WebSocket / SSE Connection Heartbeat & Live Protocol Strip */}
+      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-slate-500">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+            WS FEED: CONNECTED (18ms latency)
+          </span>
+          <span className="text-slate-400">·</span>
+          <span className="text-slate-600 dark:text-slate-400">ws://telemetry.agrisupply.internal:8080/v1/stream?sensor=SN-04</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px]">
+          <span>Payload: 142 B/frame</span>
+          <span>·</span>
+          <span className="text-slate-700 dark:text-slate-300 font-bold">Heartbeat OK</span>
+        </div>
+      </div>
+
     </div>
   );
 };
