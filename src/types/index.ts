@@ -283,3 +283,23 @@ export interface ApplicationAuditEvent {
   metadata?: Record<string, unknown>;
 }
 
+export type AlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type AlertStatus = 'DETECTED' | 'ACKNOWLEDGED' | 'INVESTIGATING' | 'RESOLVED';
+export type AlertActionType = 'INVESTIGATE' | 'ENGAGE_COOLING' | 'REVIEW_ROUTE' | 'OPEN_INSPECTION' | 'ACKNOWLEDGE';
+
+export interface OperationalAlert {
+  id: string;
+  severity: AlertSeverity;
+  timestamp: string;
+  assetId: string;
+  assetName: string;
+  batchId?: string;
+  currentValue: string;
+  thresholdLimit: string;
+  reason: string;
+  recommendedAction: string;
+  status: AlertStatus;
+  actionType: AlertActionType;
+  duration?: string;
+}
+

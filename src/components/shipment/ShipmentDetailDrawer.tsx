@@ -11,7 +11,6 @@ import {
   Clock, 
   FileText, 
   Download, 
-  ExternalLink, 
   CheckCircle2, 
   AlertTriangle, 
   Flame, 
@@ -19,10 +18,13 @@ import {
   QrCode, 
   ArrowRight,
   Hash,
-  Calendar,
-  Layers,
   Copy,
-  Check
+  Check,
+  Cpu,
+  Power,
+  Navigation,
+  UserCheck,
+  Scale
 } from 'lucide-react';
 
 interface ShipmentDetailDrawerProps {
@@ -30,13 +32,21 @@ interface ShipmentDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenReplay?: (batchId: string) => void;
+  onNavigateToTracking?: (batchId: string, reeferId?: string) => void;
+  onOpenDiagnostics?: (batch: ProduceBatch) => void;
+  onOpenInspection?: (batch: ProduceBatch) => void;
+  onEngageCooling?: (batchId: string) => void;
 }
 
 export const ShipmentDetailDrawer: React.FC<ShipmentDetailDrawerProps> = ({
   batch,
   isOpen,
   onClose,
-  onOpenReplay
+  onOpenReplay,
+  onNavigateToTracking,
+  onOpenDiagnostics,
+  onOpenInspection,
+  onEngageCooling
 }) => {
   const [copiedHash, setCopiedHash] = useState(false);
 
@@ -48,27 +58,36 @@ export const ShipmentDetailDrawer: React.FC<ShipmentDetailDrawerProps> = ({
     setTimeout(() => setCopiedHash(false), 2000);
   };
 
+  const isBreached = batch.coldChainStatus === 'CRITICAL_BREACH';
+
   const getStatusBadge = () => {
     switch (batch.coldChainStatus) {
       case 'OPTIMAL':
         return (
           <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>NOMINAL COLD-CHAIN</span>
+            <span>NORMAL (NOMINAL)</span>
           </span>
         );
       case 'WARNING':
         return (
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-            <span>THERMAL WARNING</span>
+            <span>APPROACHING LIMIT</span>
           </span>
         );
       case 'CRITICAL_BREACH':
         return (
-          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-red-100 text-red-800 border border-red-300 flex items-center gap-1.5 animate-pulse">
-            <Flame className="w-3.5 h-3.5 text-red-600" />
-            <span>CRITICAL BREACH</span>
+          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1.5 animate-pulse">
+            <Flame className="w-3.5 h-3.5 text-rose-600" />
+            <span>EXCURSION (AT RISK)</span>
+          </span>
+        );
+      case 'RECOVERING':
+        return (
+          <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-sky-100 text-sky-800 border border-sky-300 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
+            <span>RECOVERING ENVELOPE</span>
           </span>
         );
       default:
@@ -83,81 +102,116 @@ export const ShipmentDetailDrawer: React.FC<ShipmentDetailDrawerProps> = ({
   // Operational Timeline Events
   const timelineEvents = [
     {
-      time: '08:30 AM',
-      title: 'Harvest & Pre-Cooling Complete',
-      desc: `Harvested at ${batch.farmerName} origin. Pulp pre-cooled to ${batch.currentTemp.toFixed(1)}°C.`,
+      time: '06:30 AM',
+      title: 'Harvest & Hydro-Cooling Verification',
+      desc: `Harvested at ${batch.farmLocation}. Pulp pre-cooled to initial setpoint ${batch.currentTemp.toFixed(1)}°C.`,
       status: 'DONE'
     },
     {
-      time: '09:45 AM',
-      title: 'Digital Quality Inspection Certified',
-      desc: `Inspection Grade: ${batch.qualityGrade.replace(/_/g, ' ')}. Visual score: ${batch.freshnessScorePercent}%.`,
+      time: '08:15 AM',
+      title: 'Quality Intake Inspection Certified',
+      desc: `Inspector: ${batch.inspectedBy || 'Farooq Ahmed'}. Certified: ${batch.qualityGrade.replace(/_/g, ' ')}. Freshness: ${batch.freshnessScorePercent}%.`,
       status: 'DONE'
     },
     {
-      time: '10:30 AM',
-      title: 'Dispatch into Monitored Reefer Convoy',
-      desc: `Loaded into TRK-024. Sealed with SHA-256 Merkle block. Destination: ${batch.destinationHub}.`,
+      time: '10:00 AM',
+      title: 'Reefer Dispatch & Digital Lock Engaged',
+      desc: `Assigned Vehicle: ${batch.assignedReeferId || 'TRK-024'} · Merkle seal: ${batch.blockchainSealHash.slice(0, 14)}...`,
       status: batch.stage === 'IN_TRANSIT' || batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED' ? 'DONE' : 'PENDING'
     },
     {
-      time: '01:15 PM',
-      title: 'Corridor Transit & Telematics Heartbeat',
-      desc: `GPS logged at N-5 Highway. Temperature maintain envelope at ${batch.currentTemp.toFixed(1)}°C.`,
-      status: batch.stage === 'IN_TRANSIT' ? 'ACTIVE' : batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED' ? 'DONE' : 'PENDING'
+      time: '12:30 PM',
+      title: 'N-5 Corridor Highway Transit',
+      desc: isBreached 
+        ? `⚠️ Thermal excursion detected! Core temp escalated to ${batch.currentTemp.toFixed(1)}°C (Ceiling: ${batch.targetTempMax}°C).`
+        : `GPS telemetry nominal. Core pulp temperature stable at ${batch.currentTemp.toFixed(1)}°C.`,
+      status: isBreached ? 'ALERT' : batch.stage === 'IN_TRANSIT' ? 'ACTIVE' : batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED' ? 'DONE' : 'PENDING'
     },
     {
-      time: '03:30 PM',
+      time: batch.stage === 'DELIVERED' ? '03:15 PM' : 'ETA ' + batch.estimatedTransitTime,
       title: 'Cold Storage Terminal Receiving',
-      desc: `Final arrival check-in at ${batch.destinationHub} cold room docking bay.`,
+      desc: `Receiving Hub: ${batch.destinationHub}. Dock bay quarantine inspection.`,
       status: batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED' ? 'DONE' : 'PENDING'
     }
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col overflow-hidden border-l border-slate-200">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-[#0f1722] w-full max-w-2xl h-full shadow-2xl flex flex-col overflow-hidden border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-200">
         
-        {/* Drawer Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
+        {/* Drawer Header (Level 2 Operational Workspace) */}
+        <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#0c131c] sticky top-0 z-10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-slate-500">{batch.id}</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-sm font-bold text-slate-900">{batch.variety} ({batch.commodity.toUpperCase()})</span>
+              <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{batch.id}</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">{batch.variety}</span>
+              <span className="text-[10px] font-mono uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded">
+                {batch.commodity}
+              </span>
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               {getStatusBadge()}
-              <span className="text-xs font-mono text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
-                Stage: {batch.stage}
+              <span className="text-xs font-mono text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded">
+                Stage: {batch.stage.replace(/_/g, ' ')}
               </span>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-            title="Close Drawer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+            title="Close Workspace"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Drawer Scrollable Content */}
-        <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-5 flex-1 overflow-y-auto text-xs">
           
-          {/* Quick Action Strip */}
+          {/* Action Ribbon */}
           <div className="flex flex-wrap items-center gap-2">
-            {onOpenReplay && (
+            {onNavigateToTracking && (
               <button
                 onClick={() => {
                   onClose();
-                  onOpenReplay(batch.id);
+                  onNavigateToTracking(batch.id, batch.assignedReeferId);
                 }}
-                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
               >
-                <span>Replay Cold-Chain Journey</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <Navigation className="w-3.5 h-3.5 text-sky-400" />
+                <span>Live Fleet Tracking</span>
+              </button>
+            )}
+
+            {onOpenDiagnostics && (
+              <button
+                onClick={() => onOpenDiagnostics(batch)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 transition"
+              >
+                <Cpu className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Sensor Diagnostics</span>
+              </button>
+            )}
+
+            {onOpenInspection && (
+              <button
+                onClick={() => onOpenInspection(batch)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 transition"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>Quality Inspection</span>
+              </button>
+            )}
+
+            {isBreached && onEngageCooling && (
+              <button
+                onClick={() => onEngageCooling(batch.id)}
+                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs animate-breach-pulse"
+              >
+                <Power className="w-3.5 h-3.5" />
+                <span>Engage Aux Cooling</span>
               </button>
             )}
 
@@ -166,156 +220,174 @@ export const ShipmentDetailDrawer: React.FC<ShipmentDetailDrawerProps> = ({
               className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download Compliance Certificate</span>
+              <span>Certified PDF</span>
             </button>
           </div>
 
-          {/* 4-Step Visual Journey Bar */}
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-            <span className="text-xs font-mono font-bold text-slate-500 uppercase block">
-              Farm-to-Fork Supply Chain Journey
+          {/* Operational Transit Status (Level 2 Detail) */}
+          <div className="p-4 bg-slate-50 dark:bg-[#121c28] rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              Operational Logistics Parameters
             </span>
 
-            <div className="flex items-center justify-between gap-1 text-xs font-mono">
-              <div className="text-center flex-1">
-                <div className="w-8 h-8 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs mb-1">
-                  1
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono block">Origin Farm Hub</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{batch.farmerName}</span>
+                  <span className="text-[11px] text-slate-500 block">{batch.farmLocation}</span>
                 </div>
-                <span className="font-bold text-slate-800 block text-[11px]">Farm Harvest</span>
-                <span className="text-[10px] text-slate-400">{batch.farmerName.split(' ')[0]}</span>
               </div>
 
-              <div className="h-0.5 flex-1 bg-emerald-500"></div>
-
-              <div className="text-center flex-1">
-                <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs mb-1 ${
-                  batch.stage === 'IN_TRANSIT' || batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
-                  2
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono block">Destination Terminal</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{batch.destinationHub}</span>
+                  <span className="text-[11px] text-slate-500 block">ETA: {batch.estimatedTransitTime}</span>
                 </div>
-                <span className="font-bold text-slate-800 block text-[11px]">Cold Transit</span>
-                <span className="text-[10px] text-slate-400">TRK-024</span>
               </div>
 
-              <div className={`h-0.5 flex-1 ${batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED' ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-
-              <div className="text-center flex-1">
-                <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs mb-1 ${
-                  batch.stage === 'AT_WAREHOUSE' || batch.stage === 'DELIVERED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-200 text-slate-600'
-                }`}>
-                  3
+              <div className="flex items-start gap-2.5">
+                <Truck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono block">Assigned Transport Reefer</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">
+                    {batch.assignedReeferId || 'TRK-024 (Reefer Inverter)'}
+                  </span>
+                  <span className="text-[11px] text-slate-500 block">Operator: Assigned Logistics Lead</span>
                 </div>
-                <span className="font-bold text-slate-800 block text-[11px]">Cold Depot</span>
-                <span className="text-[10px] text-slate-400">Bay #02</span>
               </div>
 
-              <div className={`h-0.5 flex-1 ${batch.stage === 'DELIVERED' ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-
-              <div className="text-center flex-1">
-                <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold text-xs mb-1 ${
-                  batch.stage === 'DELIVERED' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  4
+              <div className="flex items-start gap-2.5">
+                <Scale className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-slate-400 font-mono block">Cargo Mass & Value</span>
+                  <span className="font-bold text-slate-900 dark:text-white font-mono">
+                    {batch.quantityKg.toLocaleString()} kg net mass
+                  </span>
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono block">
+                    Estimated Lot: ${(batch.quantityKg * 2.85).toLocaleString()} USD
+                  </span>
                 </div>
-                <span className="font-bold text-slate-800 block text-[11px]">Retail Hub</span>
-                <span className="text-[10px] text-slate-400">Final Store</span>
               </div>
             </div>
           </div>
 
-          {/* Real-time Telemetry & Thermal Envelope Grid */}
+          {/* Real-time Telemetry & Cold Chain Envelope */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase font-mono block">Current Pulp Temp</span>
+            <div className={`p-4 rounded-xl border transition ${
+              isBreached 
+                ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-300 dark:border-rose-700' 
+                : 'bg-slate-50 dark:bg-[#121c28] border border-slate-200 dark:border-slate-800'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 uppercase font-mono block">Core Pulp Temperature</span>
+                <Thermometer className={`w-4 h-4 ${isBreached ? 'text-rose-600 animate-pulse' : 'text-emerald-600 dark:text-emerald-400'}`} />
+              </div>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-black font-mono text-slate-900">
+                <span className={`text-2xl font-black font-mono ${isBreached ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                   {batch.currentTemp.toFixed(1)}°C
                 </span>
                 <span className="text-slate-500 font-mono text-[11px]">
                   (Target: {batch.targetTempMin}°C – {batch.targetTempMax}°C)
                 </span>
               </div>
+              <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                {isBreached ? '⚠️ EXCEEDED MAXIMUM SAFE THRESHOLD' : '✓ Within certified cold-chain envelope'}
+              </span>
             </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase font-mono block">Cargo Weight & Units</span>
+            <div className="p-4 bg-slate-50 dark:bg-[#121c28] rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 uppercase font-mono block">Chamber Relative Humidity</span>
+                <Droplets className="w-4 h-4 text-sky-600" />
+              </div>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-black font-mono text-slate-900">
-                  {batch.quantityKg.toLocaleString()}
+                <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+                  {batch.currentHumidity}%
                 </span>
                 <span className="text-slate-500 font-mono text-[11px]">
-                  kg net weight
+                  (Target: {batch.targetHumidityMin}% – {batch.targetHumidityMax}%)
                 </span>
               </div>
+              <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                Capacitive RH Transducer calibrated
+              </span>
             </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="p-4 bg-slate-50 dark:bg-[#121c28] rounded-xl border border-slate-200 dark:border-slate-800">
               <span className="text-[10px] text-slate-400 uppercase font-mono block">Quality Grade & Freshness</span>
               <div className="mt-1">
-                <span className="font-bold text-slate-800 block">{batch.qualityGrade.replace(/_/g, ' ')}</span>
-                <span className="text-emerald-700 font-mono font-semibold text-[11px]">
-                  {batch.freshnessScorePercent}% Freshness Score
+                <span className="font-bold text-slate-900 dark:text-white block text-sm">
+                  {batch.qualityGrade.replace(/_/g, ' ')}
+                </span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-mono font-semibold text-[11px]">
+                  {batch.freshnessScorePercent}% Freshness Score · {batch.brixSugarScore ? `Brix ${batch.brixSugarScore}° Bx` : 'Visual certified'}
                 </span>
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] text-slate-400 uppercase font-mono block">Destination Terminal</span>
-              <div className="mt-1 flex items-center gap-1.5 font-bold text-slate-800">
-                <MapPin className="w-3.5 h-3.5 text-sky-600" />
-                <span>{batch.destinationHub}</span>
+            <div className="p-4 bg-slate-50 dark:bg-[#121c28] rounded-xl border border-slate-200 dark:border-slate-800">
+              <span className="text-[10px] text-slate-400 uppercase font-mono block">Inspection Attestation</span>
+              <div className="mt-1">
+                <span className="font-bold text-slate-900 dark:text-white block">
+                  {batch.inspectedBy || 'Quality Control Lead'}
+                </span>
+                <span className="text-slate-500 font-mono text-[11px]">
+                  Stage: {batch.stage} · {batch.stageEnteredAt}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Cryptographic Ledger Seal Box */}
+          {/* SHA-256 Merkle Provenance Seal */}
           <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-mono text-slate-400 flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-emerald-400" />
-                <span>SHA-256 Merkle Provenance Seal</span>
+                <span>SHA-256 Ledger Provenance Seal</span>
               </span>
               <button
                 onClick={handleCopyHash}
-                className="text-emerald-400 hover:text-emerald-300 font-mono text-[11px] flex items-center gap-1"
+                className="text-emerald-400 hover:text-emerald-300 font-mono text-[11px] flex items-center gap-1 transition"
               >
                 {copiedHash ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedHash ? 'Copied' : 'Copy'}</span>
+                <span>{copiedHash ? 'Copied' : 'Copy Hash'}</span>
               </button>
             </div>
             <p className="font-mono text-xs text-emerald-300 break-all select-all leading-relaxed">
               {batch.blockchainSealHash}
             </p>
             <span className="text-[10px] text-slate-400 font-mono block">
-              Certified under FIPS 180-4 standard · Zero tamper detected
+              Cryptographically generated state hash · FIPS 180-4 Standard
             </span>
           </div>
 
           {/* Chronological Operational Timeline */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 font-mono uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white font-mono uppercase tracking-wider">
               Chronological Operational Event Log
             </h4>
 
-            <div className="space-y-2.5 border-l-2 border-slate-200 pl-4 ml-2">
+            <div className="space-y-2.5 border-l-2 border-slate-200 dark:border-slate-800 pl-4 ml-2">
               {timelineEvents.map((evt, idx) => (
                 <div key={idx} className="relative space-y-0.5">
                   <div className={`w-2.5 h-2.5 rounded-full absolute -left-[21px] top-1 ${
                     evt.status === 'DONE'
-                      ? 'bg-emerald-600 ring-2 ring-emerald-200'
+                      ? 'bg-emerald-600 ring-2 ring-emerald-200 dark:ring-emerald-900'
+                      : evt.status === 'ALERT'
+                      ? 'bg-rose-600 ring-2 ring-rose-200 dark:ring-rose-900 animate-pulse'
                       : evt.status === 'ACTIVE'
-                      ? 'bg-amber-500 ring-2 ring-amber-200 animate-ping'
-                      : 'bg-slate-300'
+                      ? 'bg-amber-500 ring-2 ring-amber-200 dark:ring-amber-900'
+                      : 'bg-slate-300 dark:bg-slate-700'
                   }`} />
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono text-slate-400">{evt.time}</span>
-                    <span className="text-xs font-bold text-slate-800">{evt.title}</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">{evt.title}</span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-snug">{evt.desc}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{evt.desc}</p>
                 </div>
               ))}
             </div>

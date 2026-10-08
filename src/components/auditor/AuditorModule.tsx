@@ -59,6 +59,7 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
   const [isClearanceUnlocked, setIsClearanceUnlocked] = useState<boolean>(false);
   const [clearancePin, setClearancePin] = useState<string>('');
   const [showPinInput, setShowPinInput] = useState<boolean>(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   const handleToggleClearance = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +67,9 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
       setIsClearanceUnlocked(true);
       setShowPinInput(false);
       setClearancePin('');
+      setPinError(null);
     } else {
-      alert('Invalid Auditor Clearance PIN. Demo PIN: 9942');
+      setPinError('Invalid Auditor PIN. Demo PIN is 9942.');
     }
   };
 
@@ -136,35 +138,48 @@ export const AuditorModule: React.FC<AuditorModuleProps> = ({ batches }) => {
 
       {/* Inline PIN Prompt Modal */}
       {showPinInput && (
-        <form onSubmit={handleToggleClearance} className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-            <span className="font-bold text-amber-900 dark:text-amber-200">
-              Enter Auditor Clearance PIN (Demo PIN: 9942) to reveal confidential grower contacts & pricing margins:
-            </span>
+        <form onSubmit={handleToggleClearance} className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-2xl flex flex-col gap-2 text-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
+              <span className="font-bold text-amber-900 dark:text-amber-200">
+                Enter Auditor Clearance PIN (Demo PIN: 9942) to reveal confidential grower contacts & pricing margins:
+              </span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="password"
+                placeholder="PIN 9942"
+                value={clearancePin}
+                onChange={(e) => {
+                  setClearancePin(e.target.value);
+                  if (pinError) setPinError(null);
+                }}
+                className="px-3 py-1.5 rounded-lg border border-amber-400 bg-white dark:bg-slate-900 text-xs font-mono font-bold focus:outline-none w-28"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-500 transition"
+              >
+                Verify
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPinInput(false);
+                  setPinError(null);
+                }}
+                className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-700 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input
-              type="password"
-              placeholder="PIN 9942"
-              value={clearancePin}
-              onChange={(e) => setClearancePin(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-amber-400 bg-white dark:bg-slate-900 text-xs font-mono font-bold focus:outline-none w-28"
-            />
-            <button
-              type="submit"
-              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-500 transition"
-            >
-              Verify
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowPinInput(false)}
-              className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-700 text-xs"
-            >
-              Cancel
-            </button>
-          </div>
+          {pinError && (
+            <div className="text-rose-600 dark:text-rose-400 font-semibold pl-6">
+              {pinError}
+            </div>
+          )}
         </form>
       )}
 

@@ -605,3 +605,50 @@ export const INITIAL_AUDIT_LOGS: ComplianceAuditLog[] = [
     details: 'Mountain origin GPS coordinates, pre-cooling logs, and water microbial certificates verified on-chain.'
   }
 ];
+
+export const INITIAL_OPERATIONAL_ALERTS: import('../types').OperationalAlert[] = [
+  {
+    id: 'ALT-101',
+    severity: 'HIGH',
+    timestamp: '10:24 AM',
+    assetId: 'TRK-024',
+    assetName: 'Reefer Unit TRK-024',
+    batchId: '#ASG-001',
+    currentValue: '3.8°C',
+    thresholdLimit: '4.0°C Max',
+    reason: 'Pulp temperature approaching critical cold ceiling under highway ambient load',
+    recommendedAction: 'Verify reefer inverter compressor RPM and inspect secondary airflow duct',
+    status: 'DETECTED',
+    actionType: 'INVESTIGATE',
+    duration: '04m 12s'
+  },
+  {
+    id: 'ALT-102',
+    severity: 'MEDIUM',
+    timestamp: '09:50 AM',
+    assetId: 'TRK-019',
+    assetName: 'Reefer Unit TRK-019',
+    batchId: '#ASG-002',
+    currentValue: '+42 min',
+    thresholdLimit: 'ETA +15 min',
+    reason: 'Corridor construction bottleneck on N-5 Highway near Sahiwal Bypass',
+    recommendedAction: 'Review alternative arterial bypass route via Pakpattan link',
+    status: 'DETECTED',
+    actionType: 'REVIEW_ROUTE',
+    duration: '18m 00s'
+  },
+  {
+    id: 'ALT-103',
+    severity: 'LOW',
+    timestamp: '08:45 AM',
+    assetId: '#ASG-003',
+    assetName: 'Tender Spinach Lot',
+    batchId: '#ASG-003',
+    currentValue: 'Intake Complete',
+    thresholdLimit: 'Quality Check Required',
+    reason: 'Harvest pre-cooling verified at 1.8°C; awaiting mandatory incoming sensory & defect sign-off',
+    recommendedAction: 'Open digital quality inspection checklist and verify turgor and leaf color',
+    status: 'DETECTED',
+    actionType: 'OPEN_INSPECTION'
+  }
+];
